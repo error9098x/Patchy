@@ -58,6 +58,7 @@ node_modules/
 # Redis dump
 dump.rdb
 
-# Test files
+# Test files (but keep test_nvidia.py)
 test_*.py
+!test_nvidia.py
 *_test.py

@@ -1,7 +1,7 @@
 """
 NVIDIA AI Endpoints LLM Client
 Uses OpenAI SDK with NVIDIA's API endpoint
-Model: stepfun-ai/step-3.5-flash (40 RPM rate limit)
+Model: minimaxai/minimax-m2.7 (shows thinking in <think> tags)
 """
 
 import os
@@ -16,7 +16,7 @@ def get_client():
     )
 
 # Default model
-DEFAULT_MODEL = "stepfun-ai/step-3.5-flash"
+DEFAULT_MODEL = "minimaxai/minimax-m2.7"
 
 # =============================================================================
 # CORE FUNCTIONS
@@ -26,8 +26,8 @@ def chat(
     messages: List[Dict[str, str]],
     stream: bool = False,
     temperature: float = 0.7,
-    max_tokens: int = 16384,
-    top_p: float = 0.9
+    max_tokens: int = 8192,
+    top_p: float = 0.95
 ) -> str | Iterator[str]:
     """
     Call NVIDIA AI Endpoints chat completion API.
@@ -64,16 +64,12 @@ def chat(
     if stream:
         return _stream_response(completion)
     else:
-        # Handle both content and reasoning_content
-        message = completion.choices[0].message
-        content = message.content or getattr(message, 'reasoning_content', None) or getattr(message, 'reasoning', None)
-        return content if content else ""
+        return completion.choices[0].message.content or ""
 
 
 def _stream_response(completion) -> Iterator[str]:
     """
     Generator that yields chunks from streaming response.
-    Handles both reasoning_content and regular content.
     
     Usage:
         for chunk in chat(..., stream=True):
@@ -82,14 +78,7 @@ def _stream_response(completion) -> Iterator[str]:
     for chunk in completion:
         if not getattr(chunk, "choices", None):
             continue
-        
-        # Handle reasoning content (if model supports it)
-        reasoning = getattr(chunk.choices[0].delta, "reasoning_content", None)
-        if reasoning:
-            yield reasoning
-        
-        # Handle regular content
-        if chunk.choices[0].delta.content:
+        if chunk.choices[0].delta.content is not None:
             yield chunk.choices[0].delta.content
 
 
