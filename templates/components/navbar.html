@@ -1,0 +1,28 @@
+<!-- 
+  Navbar Component (Landing Page Version)
+  Used on: index.html
+  
+  BACKEND: This is the public navbar (no auth required).
+  For authenticated navbar, see navbar_app.html
+-->
+
+<header class="sticky top-0 z-50 flex justify-between items-center px-6 py-4 w-full bg-[#0d1117]/80 backdrop-blur-md border-b border-[#30363d] font-['Space_Grotesk'] tracking-tight" role="banner">
+    <div class="flex items-center gap-2">
+        <a href="{{ url_for('index') }}" class="flex items-center gap-2" aria-label="Patchy Home">
+            <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">security</span>
+            <span class="text-xl font-bold text-white tracking-tighter">Patchy</span>
+        </a>
+    </div>
+    <nav class="hidden md:flex items-center gap-6" aria-label="Main navigation">
+        <a class="text-slate-400 hover:text-white text-body-sm font-body-sm transition-colors duration-200" href="#features">Features</a>
+        <a class="text-slate-400 hover:text-white text-body-sm font-body-sm transition-colors duration-200" href="#demo">Demo</a>
+        <a class="text-slate-400 hover:text-white text-body-sm font-body-sm transition-colors duration-200" href="#">Docs</a>
+    </nav>
+    <div class="flex items-center gap-4">
+        <!-- BACKEND: Show "Sign In" if not authenticated, else show dashboard link -->
+        <a class="text-slate-400 hover:text-white text-body-sm font-body-sm transition-colors duration-200" href="{{ url_for('login') }}">Sign In</a>
+        <a href="{{ url_for('login') }}" class="bg-primary text-on-primary px-4 py-2 rounded-DEFAULT font-label-caps text-label-caps hover:bg-primary-fixed transition-colors border border-transparent shadow-[inset_0_0_8px_rgba(255,255,255,0.2)]" role="button">
+            GET STARTED
+        </a>
+    </div>
+</header>

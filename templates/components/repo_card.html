@@ -1,0 +1,89 @@
+<!-- 
+  Repository Card Component
+  Used on: dashboard.html
+  
+  BACKEND: Pass repo object to this component
+  Expected props: { id, name, full_name, language, last_scan, is_scanning, status, contributors }
+  
+  Usage: {% include 'components/repo_card.html' with repo=repo_object %}
+-->
+
+<div class="bg-surface-container rounded-xl border border-surface-variant hover:border-primary hover:shadow-[0_0_15px_rgba(75,142,255,0.15)] transition-all duration-300 p-6 flex flex-col justify-between group relative overflow-hidden h-64" 
+     data-repo-id="{{ repo.id }}" id="repo-card-{{ repo.id }}">
+    
+    <!-- Hover gradient overlay -->
+    <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+    
+    <div>
+        <!-- Repo identifier + status dot -->
+        <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center gap-2 text-on-surface-variant">
+                <span class="material-symbols-outlined text-xl">code_blocks</span>
+                <span class="font-mono text-mono">{{ repo.full_name }}</span>
+            </div>
+            <!-- BACKEND: Status indicator (green = active, grey = inactive, red = error) -->
+            {% if repo.status == 'error' %}
+            <div class="w-2 h-2 rounded-full bg-error shadow-[0_0_8px_rgba(255,180,171,0.8)]"></div>
+            {% elif repo.status == 'active' %}
+            <div class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_#4edea3] animate-pulse"></div>
+            {% else %}
+            <div class="w-2 h-2 rounded-full bg-surface-variant"></div>
+            {% endif %}
+        </div>
+        
+        <h3 class="font-h3 text-h3 text-on-surface group-hover:text-primary transition-colors">{{ repo.name }}</h3>
+    </div>
+    
+    <div class="mt-auto">
+        <!-- Language badge + last scan -->
+        <div class="flex items-center gap-3 mb-4">
+            <span class="px-2.5 py-1 rounded bg-inverse-on-surface border border-outline-variant font-label-caps text-label-caps text-on-surface flex items-center gap-1.5">
+                <!-- BACKEND: Color dot based on language -->
+                <span class="w-2 h-2 rounded-full {% if repo.language == 'Python' %}bg-yellow-400{% elif repo.language == 'JavaScript' or repo.language == 'TypeScript' %}bg-blue-400{% elif repo.language == 'Go' %}bg-cyan-400{% elif repo.language == 'HCL' %}bg-purple-400{% else %}bg-slate-400{% endif %}"></span>
+                {{ repo.language }}
+            </span>
+            
+            {% if repo.status == 'error' %}
+            <span class="font-body-sm text-body-sm text-error flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">warning</span> 
+                Scan Failed: {{ repo.last_scan }}
+            </span>
+            {% else %}
+            <span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px]">history</span> 
+                Last scan: {{ repo.last_scan | default('Never') }}
+            </span>
+            {% endif %}
+        </div>
+        
+        <!-- Actions row -->
+        <div class="border-t border-surface-variant pt-4 flex justify-between items-center">
+            <!-- Contributor avatars -->
+            <div class="flex -space-x-2">
+                {% for avatar in repo.contributors[:3] %}
+                <img alt="Contributor Avatar" class="w-8 h-8 rounded-full border-2 border-surface-container" src="{{ avatar }}"/>
+                {% endfor %}
+                {% if repo.contributors|length > 3 %}
+                <div class="w-8 h-8 rounded-full border-2 border-surface-container bg-surface-bright flex items-center justify-center font-label-caps text-[10px] text-on-surface-variant">+{{ repo.contributors|length - 3 }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- BACKEND: Scan button - disable if is_scanning -->
+            {% if repo.status == 'error' %}
+            <button class="scan-btn bg-primary hover:bg-primary-container text-on-primary border border-transparent font-label-caps text-label-caps py-2 px-4 rounded flex items-center gap-2 transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]" 
+                    data-repo-id="{{ repo.id }}" onclick="handleScanClick('{{ repo.id }}')"
+                    {% if repo.is_scanning %}disabled{% endif %}>
+                <span class="material-symbols-outlined text-[16px]">refresh</span> 
+                {% if repo.is_scanning %}Scanning...{% else %}Retry Scan{% endif %}
+            </button>
+            {% else %}
+            <button class="scan-btn bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-label-caps text-label-caps py-2 px-4 rounded flex items-center gap-2 transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]" 
+                    data-repo-id="{{ repo.id }}" onclick="handleScanClick('{{ repo.id }}')"
+                    {% if repo.is_scanning %}disabled{% endif %}>
+                <span class="material-symbols-outlined text-[16px]">radar</span> 
+                {% if repo.is_scanning %}Scanning...{% else %}Scan Now{% endif %}
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>

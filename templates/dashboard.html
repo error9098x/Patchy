@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Your Repositories{% endblock %}
+
+{% block body %}
+<!-- App Header -->
+{% include 'components/navbar_app.html' %}
+
+<div class="flex flex-1 relative">
+    <!-- Sidebar -->
+    {% include 'components/sidebar.html' %}
+    
+    <!-- Main Content -->
+    <main class="app-main flex-1 md:ml-64 p-6 md:p-8 lg:p-12" role="main">
+        <div class="max-w-7xl mx-auto">
+            
+            <!-- Page Header -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 pb-6 border-b border-surface-variant gap-4">
+                <div>
+                    <h1 class="font-h1 text-h1 text-on-background flex items-center gap-3">
+                        <span class="material-symbols-outlined text-[40px] text-primary">folder_data</span>
+                        Your Repositories
+                    </h1>
+                    <p class="font-body-lg text-body-lg text-on-surface-variant mt-2 max-w-2xl">
+                        Monitor and manage security scanning across your connected GitHub workspaces.
+                    </p>
+                </div>
+                <div class="relative w-full md:w-80">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+                    <input class="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 pl-10 pr-4 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-body-md text-body-md transition-shadow shadow-sm" 
+                           placeholder="Filter by name or language..." type="text" id="repo-search" 
+                           oninput="filterRepos(this.value)" aria-label="Search repositories"/>
+                </div>
+            </div>
+            
+            <!-- Loading States -->
+            {% include 'components/loading.html' %}
+            
+            <!-- Repository Grid -->
+            <!-- BACKEND: This grid is populated by JavaScript using mock data initially -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="repo-grid">
+                <!-- Cards will be inserted here by dashboard.js -->
+            </div>
+            
+        </div>
+    </main>
+</div>
+
+<!-- Scan Modal Overlay -->
+<div class="modal-overlay" id="scan-modal">
+    <div class="modal-content p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="font-h3 text-h3 text-on-surface">New Scan</h2>
+            <button class="text-on-surface-variant hover:text-on-surface transition-colors" onclick="hideScanModal()" aria-label="Close modal">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        <p class="text-on-surface-variant font-body-md text-body-md mb-4">
+            Select a repository to scan for security vulnerabilities.
+        </p>
+        <div id="scan-modal-repo-list" class="flex flex-col gap-2 max-h-64 overflow-y-auto">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Patchy - Your Repositories</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-container": "#4c1a00",
+                    "on-surface-variant": "#c1c6d7",
+                    "surface-tint": "#adc6ff",
+                    "primary-fixed": "#d8e2ff",
+                    "inverse-surface": "#e0e2ed",
+                    "on-error": "#690005",
+                    "tertiary": "#ffb595",
+                    "surface-container": "#1c2028",
+                    "error": "#ffb4ab",
+                    "tertiary-fixed-dim": "#ffb595",
+                    "background": "#10131b",
+                    "on-tertiary": "#571e00",
+                    "on-secondary": "#003824",
+                    "tertiary-container": "#ef6719",
+                    "surface-container-high": "#272a32",
+                    "on-primary-container": "#00285c",
+                    "on-error-container": "#ffdad6",
+                    "on-primary": "#002e69",
+                    "on-secondary-fixed": "#002113",
+                    "primary": "#adc6ff",
+                    "on-surface": "#e0e2ed",
+                    "surface-dim": "#10131b",
+                    "primary-container": "#4b8eff",
+                    "inverse-on-surface": "#2d3039",
+                    "surface-container-lowest": "#0b0e16",
+                    "secondary": "#4edea3",
+                    "on-tertiary-fixed-variant": "#7c2e00",
+                    "on-background": "#e0e2ed",
+                    "inverse-primary": "#005bc1",
+                    "on-secondary-container": "#00311f",
+                    "secondary-container": "#00a572",
+                    "tertiary-fixed": "#ffdbcc",
+                    "outline-variant": "#414755",
+                    "surface-container-low": "#181c23",
+                    "secondary-fixed": "#6ffbbe",
+                    "on-tertiary-fixed": "#351000",
+                    "surface-variant": "#31353d",
+                    "on-secondary-fixed-variant": "#005236",
+                    "outline": "#8b90a0",
+                    "surface-bright": "#363942",
+                    "primary-fixed-dim": "#adc6ff",
+                    "surface-container-highest": "#31353d",
+                    "secondary-fixed-dim": "#4edea3",
+                    "error-container": "#93000a",
+                    "on-primary-fixed": "#001a41",
+                    "on-primary-fixed-variant": "#004493",
+                    "surface": "#10131b"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "margin": "24px",
+                    "gutter": "16px",
+                    "xs": "4px",
+                    "lg": "24px",
+                    "unit": "4px",
+                    "xl": "40px",
+                    "md": "16px"
+            },
+            "fontFamily": {
+                    "body-md": ["Space Grotesk"],
+                    "body-sm": ["Space Grotesk"],
+                    "mono": ["monospace"],
+                    "h3": ["Space Grotesk"],
+                    "h1": ["Space Grotesk"],
+                    "h2": ["Space Grotesk"],
+                    "body-lg": ["Space Grotesk"],
+                    "label-caps": ["Space Grotesk"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "mono": ["14px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "h3": ["24px", {"lineHeight": "1.3", "letterSpacing": "0em", "fontWeight": "600"}],
+                    "h1": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "h2": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "label-caps": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.1em", "fontWeight": "700"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-[#0d1117]/80 backdrop-blur-md sticky top-0 z-50 flex justify-between items-center px-6 py-3 w-full border-b border-[#30363d] text-blue-500 font-['Space_Grotesk'] tracking-tight shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
+<div class="flex items-center gap-8">
+<div class="text-xl font-bold text-white tracking-tighter">Patchy</div>
+<nav class="hidden md:flex items-center gap-2">
+<a class="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 hover:text-blue-400 transition-all duration-200 active:scale-95 duration-150" href="#">Security</a>
+<a class="px-4 py-2 rounded-lg text-blue-500 border-b-2 border-blue-500 font-bold active:scale-95 duration-150" href="#">Repositories</a>
+<a class="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 hover:text-blue-400 transition-all duration-200 active:scale-95 duration-150" href="#">Analysis</a>
+<a class="px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 hover:text-blue-400 transition-all duration-200 active:scale-95 duration-150" href="#">Settings</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative hidden lg:block w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="w-full bg-[#161b22] border border-[#30363d] rounded-DEFAULT py-1.5 pl-9 pr-3 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-500 transition-shadow" placeholder="Search resources..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-full text-slate-400 hover:bg-slate-800/50 hover:text-blue-400 transition-all duration-200 active:scale-95 duration-150 flex items-center justify-center">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 rounded-full text-slate-400 hover:bg-slate-800/50 hover:text-blue-400 transition-all duration-200 active:scale-95 duration-150 flex items-center justify-center">
+<span class="material-symbols-outlined">history</span>
+</button>
+</div>
+<div class="h-8 w-px bg-[#30363d] mx-2"></div>
+<button class="rounded-full overflow-hidden border border-[#30363d] hover:border-blue-500 transition-colors">
+<img alt="User GitHub Profile" class="w-8 h-8 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFYDRZKk3thFJ0GVTmDuBgJwxc13ClAjnUpLWeeEd48a1gwaIVLeg5p6APJ4zMggzym-PQuj6wVCYtC5WWq2AxbtUKs3W2gksFp1LQgIW25_ZlHO5xdtbkckfpOxvKsUk9JZI9i3RVd3fDHVB9prxwwx0BNz6nU2h5Z8rOJe1qIcdALUeXAgimFZVrxhLCbBlLSayLW5MpsvgivSVnqkbHjzR_bpOHn8hK6_Pp2VEZb2uFoI3OA8iu0rQ0UuzmxK6Nxo8llYcK6mpQ"/>
+</button>
+</div>
+</header>
+<div class="flex flex-1 relative">
+<!-- SideNavBar -->
+<aside class="bg-[#0d1117] fixed left-0 top-0 h-full w-64 border-r border-[#30363d] flex flex-col pt-16 z-40 text-blue-500 font-['Space_Grotesk'] text-sm">
+<div class="p-6 border-b border-[#30363d] flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-blue-500">grid_view</span>
+</div>
+<div>
+<div class="text-white font-black text-body-md">Patchy Platform</div>
+<div class="text-slate-500 text-xs">v1.2.0-stable</div>
+</div>
+</div>
+<button class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors flex justify-center items-center gap-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+<span class="material-symbols-outlined text-sm">add</span> New Scan
+                </button>
+</div>
+<nav class="flex-1 py-4 flex flex-col gap-1 px-3 overflow-y-auto">
+<a class="bg-[#161b22] text-blue-500 border-l-2 border-blue-500 hover:text-white transition-colors duration-200 active:translate-x-1 flex items-center gap-3 px-3 py-2.5 rounded-r-md" href="#">
+<span class="material-symbols-outlined">business</span> Organization
+                </a>
+<a class="text-slate-500 hover:bg-[#21262d] hover:text-white transition-colors duration-200 active:translate-x-1 flex items-center gap-3 px-3 py-2.5 border-l-2 border-transparent" href="#">
+<span class="material-symbols-outlined">security</span> Vulnerabilities
+                </a>
+<a class="text-slate-500 hover:bg-[#21262d] hover:text-white transition-colors duration-200 active:translate-x-1 flex items-center gap-3 px-3 py-2.5 border-l-2 border-transparent" href="#">
+<span class="material-symbols-outlined">hub</span> Dependency Graph
+                </a>
+<a class="text-slate-500 hover:bg-[#21262d] hover:text-white transition-colors duration-200 active:translate-x-1 flex items-center gap-3 px-3 py-2.5 border-l-2 border-transparent" href="#">
+<span class="material-symbols-outlined">verified_user</span> Compliance
+                </a>
+</nav>
+<div class="p-4 border-t border-[#30363d] flex flex-col gap-1">
+<a class="text-slate-500 hover:bg-[#21262d] hover:text-white transition-colors duration-200 flex items-center gap-3 px-3 py-2 rounded-md" href="#">
+<span class="material-symbols-outlined">menu_book</span> Docs
+                </a>
+<a class="text-slate-500 hover:bg-[#21262d] hover:text-white transition-colors duration-200 flex items-center gap-3 px-3 py-2 rounded-md" href="#">
+<span class="material-symbols-outlined">support_agent</span> Support
+                </a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 ml-64 p-8 lg:p-12">
+<div class="max-w-7xl mx-auto">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 pb-6 border-b border-surface-variant gap-4">
+<div>
+<h1 class="font-h1 text-h1 text-on-background flex items-center gap-3">
+<span class="material-symbols-outlined text-[40px] text-primary">folder_data</span>
+                            Your Repositories
+                        </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-2 max-w-2xl">
+                            Monitor and manage security scanning across your connected GitHub workspaces.
+                        </p>
+</div>
+<div class="relative w-full md:w-80">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+<input class="w-full bg-surface-container border border-outline-variant rounded-lg py-2.5 pl-10 pr-4 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-body-md text-body-md transition-shadow shadow-sm" placeholder="Filter by name or language..." type="text"/>
+</div>
+</div>
+<!-- Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<div class="bg-surface-container rounded-xl border border-surface-variant hover:border-primary hover:shadow-[0_0_15px_rgba(75,142,255,0.15)] transition-all duration-300 p-6 flex flex-col justify-between group relative overflow-hidden h-64">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+<div>
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-xl">code_blocks</span>
+<span class="font-mono text-mono">patchy-hq / core-api</span>
+</div>
+<div class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_#4edea3] animate-pulse"></div>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface group-hover:text-primary transition-colors">Core Authentication API</h3>
+</div>
+<div class="mt-auto">
+<div class="flex items-center gap-3 mb-4">
+<span class="px-2.5 py-1 rounded bg-inverse-on-surface border border-outline-variant font-label-caps text-label-caps text-on-surface flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-yellow-400"></span> Python
+                                </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">history</span> Last scan: 2 hours ago
+                                </span>
+</div>
+<div class="border-t border-surface-variant pt-4 flex justify-between items-center">
+<div class="flex -space-x-2">
+<img alt="Developer Avatar" class="w-8 h-8 rounded-full border-2 border-surface-container" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6iARI2ofSIlIxXwyzMkwuP2o92mjO8RB5NGMB8Z7cQP1B1ub0SSuHPoxW0VoRZTkVyoLgfni6_0IKj8IoYzO5yaPhXiSuNI6eNUZsp4As3YWS8MV6P62wADF9Xwx3_U5_55fjXZ66Bnfz-rQfcHNPB5t_yqUEL49AxUJVMRsctMEEiYY9b1wn_zXaLoZDOGoRKCZz3zdlkhRCq7neH0WEjBnsxktaywpeBT16Fw9WPeqZbrYt-MinPKZglNoUfSprzkUujDH7RL-g"/>
+<img alt="Developer Avatar" class="w-8 h-8 rounded-full border-2 border-surface-container" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIWkhhHEwWG3smZ1tWWcK4aKehdHO3M0kS4IN6FwFxhZ232lZFbMn01nR54yMuurLLEQNPW2AdgM93ww68ej25L7hXuMe1swfjkQAzOh0b2CnENYhY0ydgPJLh3PIHD_TaAcL6naoCjiZnY459Uj_Ono5GC66KtATq3_ip_OfTSVmrbc9_NZBex8v_APO0shZRTf3XX96PawFTK3kqwgpNQuJ3mW8TnQBG6upwzKIUJDu3u-kuieu0uN6kpuB31buFG9QHxmbUY3kt"/>
+</div>
+<button class="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-label-caps text-label-caps py-2 px-4 rounded flex items-center gap-2 transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+<span class="material-symbols-outlined text-[16px]">radar</span> Scan Now
+                                </button>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container rounded-xl border border-surface-variant hover:border-primary hover:shadow-[0_0_15px_rgba(75,142,255,0.15)] transition-all duration-300 p-6 flex flex-col justify-between group relative overflow-hidden h-64">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+<div>
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-xl">code_blocks</span>
+<span class="font-mono text-mono">patchy-hq / web-dashboard</span>
+</div>
+<div class="w-2 h-2 rounded-full bg-surface-variant"></div>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface group-hover:text-primary transition-colors">Frontend Client Apps</h3>
+</div>
+<div class="mt-auto">
+<div class="flex items-center gap-3 mb-4">
+<span class="px-2.5 py-1 rounded bg-inverse-on-surface border border-outline-variant font-label-caps text-label-caps text-on-surface flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-blue-400"></span> TypeScript
+                                </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">history</span> Last scan: 2 days ago
+                                </span>
+</div>
+<div class="border-t border-surface-variant pt-4 flex justify-between items-center">
+<div class="flex -space-x-2">
+<img alt="Designer Avatar" class="w-8 h-8 rounded-full border-2 border-surface-container" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXX8wN1deyzrkEjnTq8c2bM43BVS2BH1BfIz2D23mValwGFeljnJ3kRiGKzaMJ6W14tMPgc0UPmyrdt-T_CX5hIYnhZGbli0WHut3v0CFh3pSCR57tTMMQryvdZ9iYkjDQEW9U10zcFmdyGoikiE2usQdImBvrAdkEBgEORHxbwJZdLPsVNEkqNoZT_IUliVSIcjdHenC3hpsfQ0ZTwzl4GYGcUdO7sDy5sJRpI9WvZqqUezYiLzkkfBodVfIn7xiDbbhbyHy4D8WP"/>
+</div>
+<button class="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 font-label-caps text-label-caps py-2 px-4 rounded flex items-center gap-2 transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+<span class="material-symbols-outlined text-[16px]">radar</span> Scan Now
+                                </button>
+</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container rounded-xl border border-surface-variant hover:border-primary hover:shadow-[0_0_15px_rgba(75,142,255,0.15)] transition-all duration-300 p-6 flex flex-col justify-between group relative overflow-hidden h-64">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+<div>
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-xl">code_blocks</span>
+<span class="font-mono text-mono">patchy-hq / infra-as-code</span>
+</div>
+<div class="w-2 h-2 rounded-full bg-error shadow-[0_0_8px_rgba(255,180,171,0.8)]"></div>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface group-hover:text-primary transition-colors">Kubernetes Configurations</h3>
+</div>
+<div class="mt-auto">
+<div class="flex items-center gap-3 mb-4">
+<span class="px-2.5 py-1 rounded bg-inverse-on-surface border border-outline-variant font-label-caps text-label-caps text-on-surface flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-purple-400"></span> HCL
+                                </span>
+<span class="font-body-sm text-body-sm text-error flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">warning</span> Scan Failed: 5 hrs ago
+                                </span>
+</div>
+<div class="border-t border-surface-variant pt-4 flex justify-between items-center">
+<div class="flex -space-x-2">
+<img alt="Ops Avatar" class="w-8 h-8 rounded-full border-2 border-surface-container" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxz37Y_7W6OTifZJ3mLTeeO7czBiVs6udcXMqvYKeJXnPc8z9zr1gZq-p1Fa2UKJ79YjOSc8sp30NYV6XuX7PFFW48Jn-sHOiKqqWLTEjjsvxGAgAnUEWHuoEjABzSRAUE8cYWsu921lqZa3cRT3D6jzCULuFXA-jbKeA1BGsYKd3BpTJO_uRVMXadHs3-O-r0TrHU0wvt9UfRIKVb_I_pjF6jU9uO0YmCd7oXvWvNbY4E2yx1C857BDAwXM4PJnV8nlX2fRHyH4Bj"/>
+<img alt="Security Avatar" class="w-8 h-8 rounded-full border-2 border-surface-container" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDctuCXROPjWOK5WWwVoUYD2NiJoFEbP2ersVy7vfwSQZvaeUNPDRmfPkxlgzJLSA_zj6CCpLT1UdM_MIXNXPM8_s55si388pxO7R-o_DThMdMU3TkeXSNufQCtbYp6u5ydrGY1sOIN2LicnOVdXyZmtOFmBhORr_3buYHcnsK5x4XpJ-YOjF7l7NmiD8FGgh2N2hZgEFC2UrPXP4dHh31L8NsYK385_kzOsaGuRO3ogPtoJgn2m2L0iWN1VQM_bD-GA5TlFECdYZ9-"/>
+<div class="w-8 h-8 rounded-full border-2 border-surface-container bg-surface-bright flex items-center justify-center font-label-caps text-[10px] text-on-surface-variant">+2</div>
+</div>
+<button class="bg-primary hover:bg-primary-container text-on-primary border border-transparent font-label-caps text-label-caps py-2 px-4 rounded flex items-center gap-2 transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+<span class="material-symbols-outlined text-[16px]">refresh</span> Retry Scan
+                                </button>
+</div>
+</div>
+</div>
+<!-- Add New Card (Ghost Style) -->
+<button class="bg-transparent rounded-xl border-2 border-dashed border-surface-variant hover:border-primary hover:bg-surface-container/30 transition-all duration-300 p-6 flex flex-col justify-center items-center group h-64 cursor-pointer">
+<div class="w-12 h-12 rounded-full bg-surface-bright border border-surface-variant group-hover:border-primary flex items-center justify-center mb-4 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors text-[24px]">add</span>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface-variant group-hover:text-on-surface transition-colors">Connect Repository</h3>
+<p class="font-body-sm text-body-sm text-outline mt-2 text-center max-w-[200px]">Import a new project from your GitHub organization.</p>
+</button>
+</div>
+</div>
+</main>
+</div>
+</body></html>

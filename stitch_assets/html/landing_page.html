@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Patchy - AI GitHub Security Bot</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-container": "#4c1a00",
+                      "on-surface-variant": "#c1c6d7",
+                      "surface-tint": "#adc6ff",
+                      "primary-fixed": "#d8e2ff",
+                      "inverse-surface": "#e0e2ed",
+                      "on-error": "#690005",
+                      "tertiary": "#ffb595",
+                      "surface-container": "#1c2028",
+                      "error": "#ffb4ab",
+                      "tertiary-fixed-dim": "#ffb595",
+                      "background": "#10131b",
+                      "on-tertiary": "#571e00",
+                      "on-secondary": "#003824",
+                      "tertiary-container": "#ef6719",
+                      "surface-container-high": "#272a32",
+                      "on-primary-container": "#00285c",
+                      "on-error-container": "#ffdad6",
+                      "on-primary": "#002e69",
+                      "on-secondary-fixed": "#002113",
+                      "primary": "#adc6ff",
+                      "on-surface": "#e0e2ed",
+                      "surface-dim": "#10131b",
+                      "primary-container": "#4b8eff",
+                      "inverse-on-surface": "#2d3039",
+                      "surface-container-lowest": "#0b0e16",
+                      "secondary": "#4edea3",
+                      "on-tertiary-fixed-variant": "#7c2e00",
+                      "on-background": "#e0e2ed",
+                      "inverse-primary": "#005bc1",
+                      "on-secondary-container": "#00311f",
+                      "secondary-container": "#00a572",
+                      "tertiary-fixed": "#ffdbcc",
+                      "outline-variant": "#414755",
+                      "surface-container-low": "#181c23",
+                      "secondary-fixed": "#6ffbbe",
+                      "on-tertiary-fixed": "#351000",
+                      "surface-variant": "#31353d",
+                      "on-secondary-fixed-variant": "#005236",
+                      "outline": "#8b90a0",
+                      "surface-bright": "#363942",
+                      "primary-fixed-dim": "#adc6ff",
+                      "surface-container-highest": "#31353d",
+                      "secondary-fixed-dim": "#4edea3",
+                      "error-container": "#93000a",
+                      "on-primary-fixed": "#001a41",
+                      "on-primary-fixed-variant": "#004493",
+                      "surface": "#10131b"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "sm": "8px",
+                      "margin": "24px",
+                      "gutter": "16px",
+                      "xs": "4px",
+                      "lg": "24px",
+                      "unit": "4px",
+                      "xl": "40px",
+                      "md": "16px"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Space Grotesk"
+                      ],
+                      "body-sm": [
+                              "Space Grotesk"
+                      ],
+                      "mono": [
+                              "monospace"
+                      ],
+                      "h3": [
+                              "Space Grotesk"
+                      ],
+                      "h1": [
+                              "Space Grotesk"
+                      ],
+                      "h2": [
+                              "Space Grotesk"
+                      ],
+                      "body-lg": [
+                              "Space Grotesk"
+                      ],
+                      "label-caps": [
+                              "Space Grotesk"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "mono": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "h3": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "letterSpacing": "0em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "h1": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "h2": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "12px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "0.1em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body {
+            background-color: #10131b;
+            color: #e0e2ed;
+        }
+        .glass-panel {
+            background-color: rgba(22, 27, 34, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid #30363d;
+        }
+        .glow-accent {
+            box-shadow: inset 0 0 10px rgba(75, 142, 255, 0.2), 0 0 20px rgba(75, 142, 255, 0.1);
+        }
+        .grid-bg {
+            background-image: 
+                linear-gradient(to right, rgba(48, 54, 61, 0.2) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(48, 54, 61, 0.2) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+<body class="font-body-md text-body-md bg-background text-on-background antialiased min-h-screen flex flex-col relative overflow-x-hidden">
+<!-- Ambient Background Glows -->
+<div class="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary-container/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+<div class="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] bg-secondary-container/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
+<!-- Top Navigation (Landing Page Version, suppressed active states as it's not the app shell) -->
+<header class="sticky top-0 z-50 flex justify-between items-center px-6 py-4 w-full bg-[#0d1117]/80 backdrop-blur-md border-b border-[#30363d] font-['Space_Grotesk'] tracking-tight">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="security" data-weight="fill" style="font-variation-settings: 'FILL' 1;">security</span>
+<span class="text-xl font-bold text-white tracking-tighter">Patchy</span>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-slate-400 hover:text-white text-body-sm font-body-sm transition-colors duration-200" href="#">Features</a>
+<a class="text-slate-400 hover:text-white text-body-sm font-body-sm transition-colors duration-200" href="#">Docs</a>
+<a class="text-slate-400 hover:text-white text-body-sm font-body-sm transition-colors duration-200" href="#">Pricing</a>
+</nav>
+<div class="flex items-center gap-4">
+<a class="text-slate-400 hover:text-white text-body-sm font-body-sm transition-colors duration-200" href="#">Sign In</a>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-DEFAULT font-label-caps text-label-caps hover:bg-primary-fixed transition-colors border border-transparent shadow-[inset_0_0_8px_rgba(255,255,255,0.2)]">
+                GET STARTED
+            </button>
+</div>
+</header>
+<main class="flex-grow z-10 relative grid-bg">
+<!-- Hero Section -->
+<section class="container mx-auto px-6 py-24 md:py-32 flex flex-col items-center justify-center text-center max-w-4xl">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-secondary/30 bg-secondary/10 text-secondary mb-8 font-label-caps text-label-caps tracking-widest">
+<span class="material-symbols-outlined text-[14px]" data-icon="bolt" data-weight="fill" style="font-variation-settings: 'FILL' 1;">bolt</span>
+                PATCHY V2.0 IS LIVE
+            </div>
+<h1 class="font-h1 text-h1 text-white mb-6 tracking-tight">
+                AI Security Teammate for Your <br/>
+<span class="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-container">GitHub Repos</span>
+</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mb-12">
+                Automate vulnerability detection, generate precise fixes, and manage security issues instantly without leaving your workflow. High-performance analysis powered by advanced AI.
+            </p>
+<div class="flex flex-col sm:flex-row gap-4 items-center">
+<button class="flex items-center justify-center gap-2 bg-primary text-on-primary px-8 py-4 rounded-DEFAULT font-label-caps text-label-caps hover:bg-primary-fixed transition-all border border-transparent glow-accent w-full sm:w-auto">
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path></svg>
+                    GET STARTED WITH GITHUB
+                </button>
+<button class="flex items-center justify-center gap-2 bg-transparent text-white px-8 py-4 rounded-DEFAULT font-label-caps text-label-caps border border-outline-variant hover:border-primary hover:bg-surface-container-low transition-all w-full sm:w-auto">
+                    VIEW DOCUMENTATION
+                </button>
+</div>
+</section>
+<!-- Bento Grid Features Section -->
+<section class="container mx-auto px-6 py-16 max-w-6xl">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Feature 1 -->
+<div class="glass-panel p-8 rounded-lg flex flex-col items-start hover:border-primary transition-colors group">
+<div class="w-12 h-12 rounded-full bg-[#161b22] border border-[#30363d] flex items-center justify-center mb-6 group-hover:border-primary group-hover:shadow-[0_0_15px_rgba(75,142,255,0.2)] transition-all">
+<span class="material-symbols-outlined text-primary" data-icon="radar" data-weight="fill" style="font-variation-settings: 'FILL' 1;">radar</span>
+</div>
+<h3 class="font-h3 text-h3 text-white mb-3">Auto-scan vulnerabilities</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Continuous monitoring of your codebase. Instantly detects security flaws, exposed secrets, and outdated dependencies during PRs.</p>
+</div>
+<!-- Feature 2 -->
+<div class="glass-panel p-8 rounded-lg flex flex-col items-start hover:border-secondary transition-colors group">
+<div class="w-12 h-12 rounded-full bg-[#161b22] border border-[#30363d] flex items-center justify-center mb-6 group-hover:border-secondary group-hover:shadow-[0_0_15px_rgba(78,222,163,0.2)] transition-all">
+<span class="material-symbols-outlined text-secondary" data-icon="build" data-weight="fill" style="font-variation-settings: 'FILL' 1;">build</span>
+</div>
+<h3 class="font-h3 text-h3 text-white mb-3">Generate fixes automatically</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Don't just find issues; fix them. Patchy generates intelligent, context-aware code patches ready to be merged with one click.</p>
+</div>
+<!-- Feature 3 -->
+<div class="glass-panel p-8 rounded-lg flex flex-col items-start hover:border-tertiary-container transition-colors group">
+<div class="w-12 h-12 rounded-full bg-[#161b22] border border-[#30363d] flex items-center justify-center mb-6 group-hover:border-tertiary-container group-hover:shadow-[0_0_15px_rgba(239,103,25,0.2)] transition-all">
+<span class="material-symbols-outlined text-tertiary-container" data-icon="forum" data-weight="fill" style="font-variation-settings: 'FILL' 1;">forum</span>
+</div>
+<h3 class="font-h3 text-h3 text-white mb-3">Respond to issues intelligently</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Interact directly within GitHub comments. Ask Patchy to clarify vulnerabilities or suggest alternative mitigation strategies.</p>
+</div>
+</div>
+</section>
+<!-- System Preview (Decorative) -->
+<section class="container mx-auto px-6 py-16 max-w-5xl">
+<div class="rounded-xl border border-[#30363d] bg-[#0d1117] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+<!-- Mac-like Header -->
+<div class="flex items-center px-4 py-3 border-b border-[#30363d] bg-[#161b22]">
+<div class="flex space-x-2">
+<div class="w-3 h-3 rounded-full bg-outline-variant"></div>
+<div class="w-3 h-3 rounded-full bg-outline-variant"></div>
+<div class="w-3 h-3 rounded-full bg-outline-variant"></div>
+</div>
+<div class="mx-auto flex items-center text-xs text-on-surface-variant font-mono">
+<span class="material-symbols-outlined text-[14px] mr-2" data-icon="lock" data-weight="fill" style="font-variation-settings: 'FILL' 1;">lock</span>
+                        github.com/org/repo/pull/42
+                    </div>
+</div>
+<!-- Content Canvas -->
+<div class="p-6 bg-[#0d1117] flex flex-col gap-4">
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-full bg-primary/20 border border-primary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="smart_toy" data-weight="fill" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</div>
+<div class="glass-panel p-4 rounded-lg rounded-tl-none w-full border-l-2 border-l-primary">
+<div class="flex justify-between items-center mb-2">
+<span class="font-label-caps text-label-caps text-white">PATCHY BOT</span>
+<span class="text-xs text-on-surface-variant">Just now</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface mb-3">I detected a potential SQL Injection vulnerability in `user_query.go`. I have generated a patch to use parameterized queries.</p>
+<div class="bg-[#0b0e16] p-3 rounded border border-outline-variant font-mono text-mono text-sm overflow-x-auto">
+<span class="text-error">- query := fmt.Sprintf("SELECT * FROM users WHERE id = %s", id)</span><br/>
+<span class="text-secondary">+ query := "SELECT * FROM users WHERE id = ?"</span>
+</div>
+<div class="mt-4 flex gap-2">
+<button class="bg-secondary/10 text-secondary border border-secondary/30 px-3 py-1 rounded text-xs font-bold hover:bg-secondary/20 transition-colors">Approve Patch</button>
+<button class="bg-surface-bright text-on-surface border border-outline-variant px-3 py-1 rounded text-xs hover:bg-surface-variant transition-colors">Dismiss</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<footer class="border-t border-[#30363d] bg-[#0d1117] py-8 mt-12 z-10 relative">
+<div class="container mx-auto px-6 text-center text-on-surface-variant font-body-sm text-body-sm">
+            © 2024 Patchy Security Systems. All rights reserved. Built for dark mode.
+        </div>
+</footer>
+</body></html>

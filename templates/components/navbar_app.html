@@ -1,0 +1,46 @@
+<!-- 
+  App Header Component (Authenticated pages)
+  Used on: dashboard.html, scan_results.html, scan_detail.html
+  
+  BACKEND: Inject user data
+  Expected data: { username, avatar_url }
+  Active page is set via `active_page` variable
+-->
+
+<header class="app-header bg-[#0d1117]/80 backdrop-blur-md sticky top-0 z-50 flex justify-between items-center px-6 py-3 w-full border-b border-[#30363d] h-16 font-['Space_Grotesk'] tracking-tight" role="banner">
+    <div class="flex items-center gap-8">
+        <a href="{{ url_for('index') }}" class="text-xl font-bold text-white tracking-tighter" aria-label="Patchy Home">Patchy</a>
+        <nav class="hidden md:flex items-center gap-2" aria-label="Main navigation">
+            <a class="px-3 py-1.5 rounded-DEFAULT transition-all duration-200 active:scale-95 {% if active_page == 'security' %}text-blue-500 border-b-2 border-blue-500 font-bold{% else %}text-slate-400 hover:text-white hover:bg-slate-800/50 hover:text-blue-400{% endif %}" 
+               href="{{ url_for('scans') }}" id="nav-security">Security</a>
+            <a class="px-3 py-1.5 rounded-DEFAULT transition-all duration-200 active:scale-95 {% if active_page == 'repositories' %}text-blue-500 border-b-2 border-blue-500 font-bold{% else %}text-slate-400 hover:text-white hover:bg-slate-800/50 hover:text-blue-400{% endif %}" 
+               href="{{ url_for('dashboard') }}" id="nav-repos">Repositories</a>
+            <a class="px-3 py-1.5 rounded-DEFAULT transition-all duration-200 active:scale-95 {% if active_page == 'analysis' %}text-blue-500 border-b-2 border-blue-500 font-bold{% else %}text-slate-400 hover:text-white hover:bg-slate-800/50 hover:text-blue-400{% endif %}" 
+               href="{{ url_for('scans') }}" id="nav-analysis">Analysis</a>
+            <a class="px-3 py-1.5 rounded-DEFAULT transition-all duration-200 active:scale-95 {% if active_page == 'settings' %}text-blue-500 border-b-2 border-blue-500 font-bold{% else %}text-slate-400 hover:text-white hover:bg-slate-800/50 hover:text-blue-400{% endif %}" 
+               href="#" id="nav-settings">Settings</a>
+        </nav>
+    </div>
+    <div class="flex items-center gap-sm">
+        <!-- Mobile menu toggle -->
+        <button class="md:hidden p-2 rounded-full text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all" 
+                id="mobile-menu-toggle" aria-label="Toggle menu">
+            <span class="material-symbols-outlined">menu</span>
+        </button>
+        
+        <button class="text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200 active:scale-95 p-2 rounded-full flex items-center justify-center" aria-label="Notifications">
+            <span class="material-symbols-outlined">notifications</span>
+        </button>
+        <button class="text-slate-400 hover:text-white hover:bg-slate-800/50 transition-all duration-200 active:scale-95 p-2 rounded-full flex items-center justify-center" aria-label="History">
+            <span class="material-symbols-outlined">history</span>
+        </button>
+        
+        <!-- BACKEND: User avatar and profile -->
+        <div class="w-8 h-8 rounded-full overflow-hidden border border-[#30363d] ml-sm cursor-pointer hover:border-blue-500 transition-colors" id="user-avatar">
+            <!-- BACKEND: Inject user.avatar_url -->
+            <img alt="{{ user.username | default('User') }} GitHub Profile" 
+                 class="w-full h-full object-cover" 
+                 src="{{ user.avatar_url | default('https://github.com/identicons/default.png') }}"/>
+        </div>
+    </div>
+</header>
