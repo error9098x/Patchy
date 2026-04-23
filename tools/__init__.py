@@ -3,7 +3,7 @@ Patchy Tools Package
 Reusable utilities for agents
 """
 
-from .cerebras_client import (
+from .nvidia_client import (
     chat,
     validate_finding,
     generate_fix,

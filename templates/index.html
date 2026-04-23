@@ -1,131 +1,333 @@
 {% extends "base.html" %}
 
-{% block title %}Patchy - AI Security Teammate for Your GitHub Repos{% endblock %}
-{% block meta_description %}Patchy automates vulnerability detection, generates precise code fixes, and manages security issues in your GitHub repositories using multi-agent AI.{% endblock %}
+{% block title %}Patchy — AI Security Teammate for GitHub{% endblock %}
+{% block meta_description %}Patchy is a multi-agent AI that auto-scans GitHub repos, proposes surgical patches, and responds inside issues — all without leaving your PR flow.{% endblock %}
+
+{% block head %}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+{% endblock %}
 
 {% block body %}
-<!-- Ambient Background Glows -->
-<div class="ambient-glow-blue" style="top: -20%; left: -10%;"></div>
-<div class="ambient-glow-green" style="bottom: -20%; right: -10%;"></div>
+<!-- Binary Grid Background -->
+<canvas id="binary-canvas" aria-hidden="true"></canvas>
 
-<!-- Landing Page Navigation -->
+<!-- Ambient Glows -->
+<div class="ambient-glow-blue" style="top: -15%; left: -15%;"></div>
+<div class="ambient-glow-green" style="bottom: -25%; right: -15%;"></div>
+
+<!-- Scanline overlay -->
+<div class="scanlines" aria-hidden="true"></div>
+
 {% include 'components/navbar.html' %}
 
-<main class="flex-grow z-10 relative grid-bg" role="main">
-    
-    <!-- ===== HERO SECTION ===== -->
-    <section class="container mx-auto px-6 py-24 md:py-32 flex flex-col items-center justify-center text-center max-w-4xl" id="hero">
-        <!-- Version badge -->
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-secondary/30 bg-secondary/10 text-secondary mb-8 font-label-caps text-label-caps tracking-widest">
-            <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">bolt</span>
-            PATCHY V2.0 IS LIVE
-        </div>
-        
-        <h1 class="font-h1 text-h1 text-white mb-6 tracking-tight">
-            AI Security Teammate for Your <br/>
-            <span class="text-primary bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-container">GitHub Repos</span>
-        </h1>
-        
-        <p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mb-12">
-            Automate vulnerability detection, generate precise fixes, and manage security issues instantly without leaving your workflow. High-performance analysis powered by advanced AI.
-        </p>
-        
-        <div class="flex flex-col sm:flex-row gap-4 items-center">
-            <!-- BACKEND: This triggers GitHub OAuth login -->
-            <a href="{{ url_for('login') }}" class="flex items-center justify-center gap-2 bg-primary text-on-primary px-8 py-4 rounded-DEFAULT font-label-caps text-label-caps hover:bg-primary-fixed transition-all border border-transparent glow-accent w-full sm:w-auto" id="cta-github">
-                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path>
-                </svg>
-                GET STARTED WITH GITHUB
-            </a>
-            <a href="#demo" class="flex items-center justify-center gap-2 bg-transparent text-white px-8 py-4 rounded-DEFAULT font-label-caps text-label-caps border border-outline-variant hover:border-primary hover:bg-surface-container-low transition-all w-full sm:w-auto">
-                VIEW DOCUMENTATION
-            </a>
+<main class="relative" role="main" style="z-index: 10;">
+
+    <!-- ===== HERO ===== -->
+    <section class="container mx-auto px-6 pt-20 md:pt-28 pb-16 max-w-6xl" id="hero">
+        <div class="grid lg:grid-cols-[1.1fr_1fr] gap-16 items-center">
+            <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-secondary/30 bg-secondary/5 text-secondary mb-6 font-label-caps text-label-caps tracking-widest status-pill">
+                    <span class="pulse-dot-sm"></span>
+                    LIVE · PATCHY v2.0 AGENTS ONLINE
+                </div>
+
+                <h1 class="font-h1 text-white mb-6 tracking-tight text-[44px] md:text-[64px] leading-[1.02]">
+                    Ship code.<br/>
+                    <span class="text-white/40">Patchy ships</span><br/>
+                    <span class="gradient-text">the security.</span>
+                </h1>
+
+                <p class="font-body-lg text-body-lg text-on-surface-variant max-w-xl mb-10">
+                    A swarm of AI agents lives inside your GitHub — scanning every push, writing surgical patches, and answering questions in-thread. Zero config. Zero context switching.
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-10">
+                    <a href="{{ url_for('login') }}" class="btn-primary group" id="cta-github">
+                        <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                        INSTALL ON GITHUB
+                        <span class="arrow">→</span>
+                    </a>
+                    <a href="#demo" class="btn-ghost">
+                        <span class="material-symbols-outlined text-[18px]">play_arrow</span>
+                        WATCH 30-SEC DEMO
+                    </a>
+                </div>
+
+                <!-- Trust row -->
+                <div class="flex flex-wrap items-center gap-x-6 gap-y-3 text-on-surface-variant font-body-sm text-body-sm">
+                    <span class="flex items-center gap-2"><span class="material-symbols-outlined text-secondary text-[16px]" style="font-variation-settings:'FILL' 1;">verified</span> SOC 2 aligned</span>
+                    <span class="flex items-center gap-2"><span class="material-symbols-outlined text-secondary text-[16px]" style="font-variation-settings:'FILL' 1;">lock</span> Code never trained on</span>
+                    <span class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[16px]" style="font-variation-settings:'FILL' 1;">bolt</span> &lt; 12s first scan</span>
+                </div>
+            </div>
+
+            <!-- Live terminal -->
+            <div class="terminal-card">
+                <div class="terminal-head">
+                    <div class="flex gap-1.5">
+                        <span class="dot-red"></span><span class="dot-yellow"></span><span class="dot-green"></span>
+                    </div>
+                    <div class="font-mono text-xs text-on-surface-variant">patchy@agent-01 ~ scanning</div>
+                    <span class="material-symbols-outlined text-[14px] text-on-surface-variant">more_horiz</span>
+                </div>
+                <div class="terminal-body font-mono text-[13px] leading-[1.7]" id="typed-terminal">
+                    <div><span class="t-prompt">$</span> <span class="t-cmd">patchy scan --repo acme/api</span></div>
+                    <div class="t-dim">→ cloning acme/api@main ... <span class="t-ok">ok</span></div>
+                    <div class="t-dim">→ spawning 4 agents ... <span class="t-ok">ok</span></div>
+                    <div class="t-dim">→ running semgrep + LLM triage ...</div>
+                    <div><span class="t-warn">[WARN]</span> SQL injection · <span class="t-file">handlers/user.go:42</span></div>
+                    <div><span class="t-warn">[WARN]</span> Hardcoded secret · <span class="t-file">.env.example:3</span></div>
+                    <div><span class="t-ok">[ OK ]</span> patch drafted · <span class="t-file">PR #247</span></div>
+                    <div><span class="t-prompt">$</span> <span class="cursor-blink">▊</span></div>
+                </div>
+            </div>
         </div>
     </section>
-    
-    <!-- ===== FEATURES BENTO GRID ===== -->
+
+    <!-- ===== LOGOS / TRUSTED BY ===== -->
+    <section class="container mx-auto px-6 py-12 max-w-6xl" aria-label="Trusted by">
+        <p class="text-center font-label-caps text-label-caps text-on-surface-variant mb-8">SECURING PRs AT TEAMS LIKE</p>
+        <div class="logo-strip">
+            <span>VERCEL</span><span>LINEAR</span><span>STRIPE</span><span>SUPABASE</span><span>RAYCAST</span><span>NOTION</span>
+        </div>
+    </section>
+
+    <!-- ===== STATS BAR ===== -->
+    <section class="container mx-auto px-6 py-10 max-w-6xl">
+        <div class="stats-grid">
+            <div><div class="stat-num" data-target="142847">0</div><div class="stat-lbl">VULNS PATCHED</div></div>
+            <div><div class="stat-num" data-target="9800">0</div><div class="stat-lbl">REPOS GUARDED</div></div>
+            <div><div class="stat-num" data-target="98" data-suffix="%">0</div><div class="stat-lbl">AUTO-MERGE RATE</div></div>
+            <div><div class="stat-num" data-target="11" data-suffix="s">0</div><div class="stat-lbl">MEDIAN SCAN</div></div>
+        </div>
+    </section>
+
+    <!-- ===== BENTO FEATURES ===== -->
     <section class="container mx-auto px-6 py-16 max-w-6xl" id="features">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            <!-- Feature 1: Auto-scan -->
-            <div class="glass-panel p-8 rounded-lg flex flex-col items-start hover:border-primary transition-colors group">
-                <div class="w-12 h-12 rounded-full bg-[#161b22] border border-[#30363d] flex items-center justify-center mb-6 group-hover:border-primary group-hover:shadow-[0_0_15px_rgba(75,142,255,0.2)] transition-all">
-                    <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">radar</span>
+        <div class="section-heading">
+            <span class="section-kicker">// CAPABILITIES</span>
+            <h2 class="font-h1 text-[36px] md:text-[48px] text-white tracking-tight leading-tight">A team of agents,<br/>not a single model.</h2>
+            <p class="text-on-surface-variant max-w-2xl mt-4">Each agent specializes. They hand off context. You get fixes, not tickets.</p>
+        </div>
+
+        <div class="bento-grid">
+            <!-- Big: Scanner -->
+            <div class="bento bento-lg border-accent-blue">
+                <div class="bento-icon"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">radar</span></div>
+                <h3 class="bento-title">Scanner Agent</h3>
+                <p class="bento-desc">Static analysis + semantic reasoning on every push. Finds injection flaws, secrets, insecure deps, and logic bugs Semgrep misses.</p>
+                <div class="bento-visual">
+                    <div class="finding-row severity-high"><span>HIGH</span><code>auth.js:88</code><span class="ml-auto">SQLi</span></div>
+                    <div class="finding-row severity-med"><span>MED</span><code>api.py:12</code><span class="ml-auto">CSRF</span></div>
+                    <div class="finding-row severity-low"><span>LOW</span><code>utils.ts:5</code><span class="ml-auto">Weak RNG</span></div>
                 </div>
-                <h3 class="font-h3 text-h3 text-white mb-3">Auto-scan vulnerabilities</h3>
-                <p class="font-body-sm text-body-sm text-on-surface-variant">Continuous monitoring of your codebase. Instantly detects security flaws, exposed secrets, and outdated dependencies during PRs.</p>
             </div>
-            
-            <!-- Feature 2: Generate fixes -->
-            <div class="glass-panel p-8 rounded-lg flex flex-col items-start hover:border-secondary transition-colors group">
-                <div class="w-12 h-12 rounded-full bg-[#161b22] border border-[#30363d] flex items-center justify-center mb-6 group-hover:border-secondary group-hover:shadow-[0_0_15px_rgba(78,222,163,0.2)] transition-all">
-                    <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">build</span>
-                </div>
-                <h3 class="font-h3 text-h3 text-white mb-3">Generate fixes automatically</h3>
-                <p class="font-body-sm text-body-sm text-on-surface-variant">Don't just find issues; fix them. Patchy generates intelligent, context-aware code patches ready to be merged with one click.</p>
+
+            <!-- Patcher -->
+            <div class="bento border-accent-green">
+                <div class="bento-icon green"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">build</span></div>
+                <h3 class="bento-title">Patcher Agent</h3>
+                <p class="bento-desc">Writes minimal, reviewable diffs. Preserves style. Adds tests when possible.</p>
             </div>
-            
-            <!-- Feature 3: Issue responses -->
-            <div class="glass-panel p-8 rounded-lg flex flex-col items-start hover:border-tertiary-container transition-colors group">
-                <div class="w-12 h-12 rounded-full bg-[#161b22] border border-[#30363d] flex items-center justify-center mb-6 group-hover:border-tertiary-container group-hover:shadow-[0_0_15px_rgba(239,103,25,0.2)] transition-all">
-                    <span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings: 'FILL' 1;">forum</span>
+
+            <!-- Responder -->
+            <div class="bento border-accent-orange">
+                <div class="bento-icon orange"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">forum</span></div>
+                <h3 class="bento-title">Responder Agent</h3>
+                <p class="bento-desc">@mention in any issue or PR. Explains CVEs, justifies fixes, suggests alternatives.</p>
+            </div>
+
+            <!-- Triager -->
+            <div class="bento bento-lg border-accent-blue">
+                <div class="bento-icon"><span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1;">filter_alt</span></div>
+                <h3 class="bento-title">Triager Agent</h3>
+                <p class="bento-desc">Ranks every finding by exploitability in *your* codebase. No noise. No 200-item dashboards. Only what actually matters this sprint.</p>
+                <div class="bento-visual mono-list">
+                    <div>blast_radius: <span class="t-warn">HIGH</span></div>
+                    <div>reachability: <span class="t-ok">CONFIRMED</span></div>
+                    <div>exploit_public: <span class="t-warn">YES</span></div>
+                    <div>priority_score: <span class="t-ok">9.4 / 10</span></div>
                 </div>
-                <h3 class="font-h3 text-h3 text-white mb-3">Respond to issues intelligently</h3>
-                <p class="font-body-sm text-body-sm text-on-surface-variant">Interact directly within GitHub comments. Ask Patchy to clarify vulnerabilities or suggest alternative mitigation strategies.</p>
             </div>
         </div>
     </section>
-    
-    <!-- ===== SYSTEM PREVIEW (Decorative) ===== -->
+
+    <!-- ===== WORKFLOW ===== -->
+    <section class="container mx-auto px-6 py-20 max-w-5xl">
+        <div class="section-heading text-center">
+            <span class="section-kicker">// WORKFLOW</span>
+            <h2 class="font-h1 text-[36px] md:text-[48px] text-white tracking-tight leading-tight">From <span class="gradient-text">push</span> to <span class="gradient-text">patch</span> in seconds.</h2>
+        </div>
+
+        <div class="flow">
+            <div class="flow-step"><div class="flow-num">01</div><h4>You push</h4><p>Commit to any branch. Webhook fires.</p></div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step"><div class="flow-num">02</div><h4>Agents swarm</h4><p>Scanner + Triager + Patcher spin up in parallel.</p></div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-step"><div class="flow-num">03</div><h4>PR appears</h4><p>Ready-to-merge patch with tests and rationale.</p></div>
+        </div>
+    </section>
+
+    <!-- ===== LIVE DEMO ===== -->
     <section class="container mx-auto px-6 py-16 max-w-5xl" id="demo">
-        <div class="rounded-xl border border-[#30363d] bg-[#0d1117] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-            <!-- Mac-like Header -->
-            <div class="flex items-center px-4 py-3 border-b border-[#30363d] bg-[#161b22]">
-                <div class="flex space-x-2">
-                    <div class="w-3 h-3 rounded-full bg-outline-variant"></div>
-                    <div class="w-3 h-3 rounded-full bg-outline-variant"></div>
-                    <div class="w-3 h-3 rounded-full bg-outline-variant"></div>
+        <div class="section-heading">
+            <span class="section-kicker">// SEE IT</span>
+            <h2 class="font-h1 text-[36px] md:text-[48px] text-white tracking-tight leading-tight">Patchy in a pull request.</h2>
+        </div>
+
+        <div class="pr-card">
+            <div class="pr-head">
+                <div class="flex gap-1.5"><span class="dot-red"></span><span class="dot-yellow"></span><span class="dot-green"></span></div>
+                <div class="flex items-center gap-2 font-mono text-xs text-on-surface-variant">
+                    <span class="material-symbols-outlined text-[14px]" style="font-variation-settings:'FILL' 1;">lock</span>
+                    github.com/acme/api · PR #247
                 </div>
-                <div class="mx-auto flex items-center text-xs text-on-surface-variant font-mono">
-                    <span class="material-symbols-outlined text-[14px] mr-2" style="font-variation-settings: 'FILL' 1;">lock</span>
-                    github.com/org/repo/pull/42
+                <span class="pr-status">OPEN</span>
+            </div>
+
+            <div class="pr-body">
+                <div class="comment">
+                    <div class="avatar-bot"><span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings:'FILL' 1;">smart_toy</span></div>
+                    <div class="bubble">
+                        <div class="bubble-head"><span class="font-label-caps text-label-caps text-white">PATCHY · PATCHER AGENT</span><span class="text-xs text-on-surface-variant">2s ago</span></div>
+                        <p class="mb-3 text-on-surface">Detected <strong class="text-error">SQL Injection</strong> in <code class="inline-code">handlers/user.go:42</code>. Fix uses parameterized query — no behavior change, no new deps.</p>
+                        <div class="diff-box font-mono text-[13px]">
+                            <div class="diff-removed px-2">- query := fmt.Sprintf("SELECT * FROM users WHERE id = %s", id)</div>
+                            <div class="diff-added px-2">+ query := "SELECT * FROM users WHERE id = ?"</div>
+                            <div class="diff-added px-2">+ rows, err := db.Query(query, id)</div>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-4">
+                            <button class="chip-approve">✓ Approve &amp; Merge</button>
+                            <button class="chip-neutral">Request Changes</button>
+                            <button class="chip-neutral">Explain more</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comment">
+                    <div class="avatar-user">JM</div>
+                    <div class="bubble">
+                        <div class="bubble-head"><span class="font-label-caps text-label-caps text-white">@jmiller</span><span class="text-xs text-on-surface-variant">just now</span></div>
+                        <p class="text-on-surface">@patchy why not use a prepared statement cache here?</p>
+                    </div>
+                </div>
+
+                <div class="comment">
+                    <div class="avatar-bot"><span class="material-symbols-outlined text-secondary text-[18px]" style="font-variation-settings:'FILL' 1;">smart_toy</span></div>
+                    <div class="bubble">
+                        <div class="bubble-head"><span class="font-label-caps text-label-caps text-white">PATCHY · RESPONDER AGENT</span><span class="text-xs text-on-surface-variant">now</span></div>
+                        <p class="text-on-surface">Good call. `database/sql` already caches prepared statements per-connection. Adding an explicit `db.Prepare` cache buys &lt;1ms here and adds lifecycle complexity. Want me to benchmark both?</p>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Bot conversation preview -->
-            <div class="p-6 bg-[#0d1117] flex flex-col gap-4">
-                <div class="flex items-start gap-4">
-                    <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary flex items-center justify-center flex-shrink-0">
-                        <span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
-                    </div>
-                    <div class="glass-panel p-4 rounded-lg rounded-tl-none w-full border-l-2 border-l-primary">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="font-label-caps text-label-caps text-white">PATCHY BOT</span>
-                            <span class="text-xs text-on-surface-variant">Just now</span>
-                        </div>
-                        <p class="font-body-sm text-body-sm text-on-surface mb-3">I detected a potential SQL Injection vulnerability in <code class="bg-surface-container-high px-1 rounded text-primary">user_query.go</code>. I have generated a patch to use parameterized queries.</p>
-                        
-                        <div class="bg-[#0b0e16] p-3 rounded border border-outline-variant font-mono text-mono text-sm overflow-x-auto">
-                            <span class="text-error">- query := fmt.Sprintf("SELECT * FROM users WHERE id = %s", id)</span><br/>
-                            <span class="text-secondary">+ query := "SELECT * FROM users WHERE id = ?"</span>
-                        </div>
-                        
-                        <div class="mt-4 flex gap-2">
-                            <button class="bg-secondary/10 text-secondary border border-secondary/30 px-3 py-1 rounded text-xs font-bold hover:bg-secondary/20 transition-colors">Approve Patch</button>
-                            <button class="bg-surface-bright text-on-surface border border-outline-variant px-3 py-1 rounded text-xs hover:bg-surface-variant transition-colors">Dismiss</button>
-                        </div>
-                    </div>
-                </div>
+        </div>
+    </section>
+
+    <!-- ===== INTEGRATIONS ===== -->
+    <section class="container mx-auto px-6 py-16 max-w-5xl">
+        <div class="section-heading text-center">
+            <span class="section-kicker">// STACK</span>
+            <h2 class="font-h1 text-[36px] md:text-[48px] text-white tracking-tight leading-tight">Plays nice with your tools.</h2>
+        </div>
+        <div class="integrations">
+            <div class="int-chip"><span class="material-symbols-outlined">code</span>GitHub</div>
+            <div class="int-chip"><span class="material-symbols-outlined">hub</span>Semgrep</div>
+            <div class="int-chip"><span class="material-symbols-outlined">psychology</span>Cerebras</div>
+            <div class="int-chip"><span class="material-symbols-outlined">forum</span>Slack</div>
+            <div class="int-chip"><span class="material-symbols-outlined">assignment</span>Linear</div>
+            <div class="int-chip"><span class="material-symbols-outlined">shield</span>Snyk</div>
+        </div>
+    </section>
+
+    <!-- ===== FAQ ===== -->
+    <section class="container mx-auto px-6 py-20 max-w-3xl" id="faq">
+        <div class="section-heading">
+            <span class="section-kicker">// FAQ</span>
+            <h2 class="font-h1 text-[36px] md:text-[48px] text-white tracking-tight leading-tight">Things devs ask first.</h2>
+        </div>
+        <div class="faq">
+            <details class="faq-item" open><summary>Does Patchy train on my code?<span class="plus">+</span></summary><p>No. Your code is never used for training. Scans run ephemerally and logs auto-purge in 7 days.</p></details>
+            <details class="faq-item"><summary>Which languages?<span class="plus">+</span></summary><p>Go, Python, TypeScript/JS, Java, Ruby, Rust, PHP, C#. More shipping weekly.</p></details>
+            <details class="faq-item"><summary>How is this different from Dependabot or Snyk?<span class="plus">+</span></summary><p>Those flag. Patchy flags, fixes, explains, and merges. Agents handle the full loop.</p></details>
+            <details class="faq-item"><summary>Self-hosted?<span class="plus">+</span></summary><p>Yes — Docker or K8s. Bring your own LLM endpoint.</p></details>
+        </div>
+    </section>
+
+    <!-- ===== FINAL CTA ===== -->
+    <section class="container mx-auto px-6 py-24 max-w-4xl">
+        <div class="cta-card">
+            <div class="cta-glow"></div>
+            <h2 class="font-h1 text-[40px] md:text-[56px] text-white tracking-tight leading-[1.05] text-center">
+                Your next PR deserves<br/>
+                <span class="gradient-text">an agent on it.</span>
+            </h2>
+            <p class="text-on-surface-variant text-center mt-5 mb-9 text-body-lg">Free for public repos. 2-click install. Zero config.</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-3">
+                <a href="{{ url_for('login') }}" class="btn-primary">
+                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                    INSTALL FREE
+                </a>
+                <a href="#demo" class="btn-ghost">READ DOCS</a>
             </div>
         </div>
     </section>
 </main>
 
-<!-- Footer -->
-<footer class="border-t border-[#30363d] bg-[#0d1117] py-8 mt-12 z-10 relative">
-    <div class="container mx-auto px-6 text-center text-on-surface-variant font-body-sm text-body-sm">
-        © 2026 Patchy Security Systems. All rights reserved. Built for dark mode.
+<footer class="border-t border-[#30363d] bg-[#0d1117]/70 backdrop-blur-sm py-10 mt-12 z-10 relative">
+    <div class="container mx-auto px-6 max-w-6xl grid md:grid-cols-3 gap-6 items-center">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary" style="font-variation-settings:'FILL' 1;">security</span>
+            <span class="text-white font-bold">Patchy</span>
+            <span class="text-on-surface-variant text-body-sm ml-2">© 2026</span>
+        </div>
+        <div class="flex gap-6 justify-center text-on-surface-variant text-body-sm">
+            <a href="#features" class="hover:text-white">Features</a>
+            <a href="#faq" class="hover:text-white">FAQ</a>
+            <a href="#" class="hover:text-white">Docs</a>
+            <a href="#" class="hover:text-white">Privacy</a>
+        </div>
+        <div class="flex gap-4 justify-end text-on-surface-variant">
+            <a href="#" class="hover:text-white" aria-label="GitHub"><span class="material-symbols-outlined">code</span></a>
+            <a href="#" class="hover:text-white" aria-label="X"><span class="material-symbols-outlined">alternate_email</span></a>
+        </div>
     </div>
 </footer>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/matrix.js') }}"></script>
+<script>
+// Animated counters
+(() => {
+    const nums = document.querySelectorAll('.stat-num');
+    const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+            if (!e.isIntersecting || e.target.dataset.done) return;
+            e.target.dataset.done = '1';
+            const target = +e.target.dataset.target;
+            const suffix = e.target.dataset.suffix || '';
+            const dur = 1400;
+            const start = performance.now();
+            const step = (t) => {
+                const p = Math.min(1, (t - start) / dur);
+                const eased = 1 - Math.pow(1 - p, 3);
+                const v = Math.floor(target * eased);
+                e.target.textContent = v.toLocaleString() + suffix;
+                if (p < 1) requestAnimationFrame(step);
+            };
+            requestAnimationFrame(step);
+        });
+    }, { threshold: 0.3 });
+    nums.forEach(n => io.observe(n));
+})();
+
+// Bento spotlight follow
+document.querySelectorAll('.bento').forEach(el => {
+    el.addEventListener('mousemove', (e) => {
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+        el.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    });
+});
+</script>
 {% endblock %}

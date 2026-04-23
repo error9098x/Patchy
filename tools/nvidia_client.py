@@ -1,20 +1,22 @@
 """
-Cerebras LLM Client
-Uses official Cerebras Cloud SDK (OpenAI-compatible)
-Supports streaming and non-streaming completions
+NVIDIA AI Endpoints LLM Client
+Uses OpenAI SDK with NVIDIA's API endpoint
+Model: stepfun-ai/step-3.5-flash (40 RPM rate limit)
 """
 
 import os
 from typing import List, Dict, Optional, Iterator
-from cerebras.cloud.sdk import Cerebras
+from openai import OpenAI
 
 # Initialize client
-client = Cerebras(
-    api_key=os.environ.get("CEREBRAS_API_KEY")
-)
+def get_client():
+    return OpenAI(
+        base_url="https://integrate.api.nvidia.com/v1",
+        api_key=os.environ.get("NVIDIA_API_KEY")
+    )
 
 # Default model
-DEFAULT_MODEL = "qwen-3-235b-a22b-instruct-2507"
+DEFAULT_MODEL = "stepfun-ai/step-3.5-flash"
 
 # =============================================================================
 # CORE FUNCTIONS
@@ -22,21 +24,19 @@ DEFAULT_MODEL = "qwen-3-235b-a22b-instruct-2507"
 
 def chat(
     messages: List[Dict[str, str]],
-    model: str = DEFAULT_MODEL,
     stream: bool = False,
-    max_tokens: int = 8192,
     temperature: float = 0.7,
-    top_p: float = 1.0
+    max_tokens: int = 16384,
+    top_p: float = 0.9
 ) -> str | Iterator[str]:
     """
-    Call Cerebras chat completion API.
+    Call NVIDIA AI Endpoints chat completion API.
     
     Args:
         messages: List of message dicts with 'role' and 'content'
-        model: Model name (default: qwen-3-235b)
         stream: Whether to stream response
-        max_tokens: Max completion tokens
         temperature: Sampling temperature (0-1)
+        max_tokens: Max completion tokens
         top_p: Nucleus sampling parameter
     
     Returns:
@@ -50,33 +50,47 @@ def chat(
         ... ])
         >>> print(response)
     """
-    response = client.chat.completions.create(
+    client = get_client()
+    
+    completion = client.chat.completions.create(
+        model=DEFAULT_MODEL,
         messages=messages,
-        model=model,
-        stream=stream,
-        max_completion_tokens=max_tokens,
         temperature=temperature,
-        top_p=top_p
+        top_p=top_p,
+        max_tokens=max_tokens,
+        stream=stream
     )
     
     if stream:
-        return _stream_response(response)
+        return _stream_response(completion)
     else:
-        return response.choices[0].message.content
+        # Handle both content and reasoning_content
+        message = completion.choices[0].message
+        content = message.content or getattr(message, 'reasoning_content', None) or getattr(message, 'reasoning', None)
+        return content if content else ""
 
 
-def _stream_response(stream) -> Iterator[str]:
+def _stream_response(completion) -> Iterator[str]:
     """
     Generator that yields chunks from streaming response.
+    Handles both reasoning_content and regular content.
     
     Usage:
         for chunk in chat(..., stream=True):
             print(chunk, end="", flush=True)
     """
-    for chunk in stream:
-        content = chunk.choices[0].delta.content
-        if content:
-            yield content
+    for chunk in completion:
+        if not getattr(chunk, "choices", None):
+            continue
+        
+        # Handle reasoning content (if model supports it)
+        reasoning = getattr(chunk.choices[0].delta, "reasoning_content", None)
+        if reasoning:
+            yield reasoning
+        
+        # Handle regular content
+        if chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
 
 
 # =============================================================================
@@ -323,7 +337,7 @@ Respond with a JSON array:
 
 def test_connection() -> bool:
     """
-    Test if Cerebras API is accessible.
+    Test if NVIDIA AI Endpoints API is accessible.
     
     Returns:
         True if connection successful, False otherwise
@@ -335,13 +349,13 @@ def test_connection() -> bool:
         )
         return "ok" in response.lower()
     except Exception as e:
-        print(f"Cerebras connection failed: {e}")
+        print(f"NVIDIA API connection failed: {e}")
         return False
 
 
 if __name__ == "__main__":
     # Test the client
-    print("Testing Cerebras connection...")
+    print("Testing NVIDIA AI Endpoints connection...")
     if test_connection():
         print("✅ Connection successful!")
         
@@ -355,4 +369,4 @@ if __name__ == "__main__":
             print(chunk, end="", flush=True)
         print("\n")
     else:
-        print("❌ Connection failed. Check CEREBRAS_API_KEY.")
+        print("❌ Connection failed. Check NVIDIA_API_KEY.")
