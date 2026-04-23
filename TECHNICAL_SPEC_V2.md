@@ -513,7 +513,87 @@ LLM_TIMEOUT_SECONDS = 30        # Per-fix LLM timeout
 
 ---
 
-## 15. Dissertation Angle
+## 15. Deployment Strategy
+
+### Development vs Production
+
+**Phase 1: Development (Current)**
+- **GitHub App**: "Only on this account"
+- **Hosting**: Local (localhost:5001)
+- **Webhook**: ngrok tunnel
+- **Purpose**: Testing and development
+- **Users**: Just you
+
+**Phase 2: Production (Future)**
+- **GitHub App**: Create NEW app with "Any account" ✅
+- **Hosting**: Railway with custom domain
+- **Webhook**: Stable URL (https://patchy.app/webhook)
+- **Purpose**: Public use
+- **Users**: Anyone can install
+
+### Why Two Apps?
+
+**Development App**:
+- Safe testing environment
+- Break things without affecting users
+- Debug on your repos only
+- Use ngrok for local webhooks
+
+**Production App**:
+- Stable and monitored
+- Professional domain
+- Public marketplace
+- Real users
+
+### Production Checklist
+
+Before creating production app:
+- [ ] Code tested thoroughly on dev app
+- [ ] Deployed to Railway with custom domain
+- [ ] Webhook endpoint is reliable (not ngrok)
+- [ ] Error handling and logging in place
+- [ ] Rate limiting implemented
+- [ ] Privacy policy and ToS ready
+- [ ] Security review complete
+
+### Production GitHub App Setup
+
+1. **Create new app** (don't modify dev app)
+2. **Name**: `Patchy` (official)
+3. **Installation**: **"Any account"** ✅
+4. **Webhook**: `https://patchy.app/webhook`
+5. **Homepage**: `https://patchy.app`
+6. **Same permissions** as dev app
+7. **New credentials** → production .env
+
+### Deployment Environments
+
+```
+Development:
+- GitHub App: Patchy-Dev (only your account)
+- URL: http://localhost:5001
+- Webhook: https://abc123.ngrok.io/webhook
+- .env: .env.development
+
+Production:
+- GitHub App: Patchy (any account)
+- URL: https://patchy.app
+- Webhook: https://patchy.app/webhook
+- .env: .env.production
+```
+
+### Migration Path
+
+1. **Week 1-2**: Build on dev app (localhost + ngrok)
+2. **Week 3**: Deploy to Railway (still dev app)
+3. **Week 4**: Test thoroughly
+4. **Week 5**: Create production app
+5. **Week 6**: Switch to production app
+6. **Week 7+**: Keep dev app for testing new features
+
+---
+
+## 16. Dissertation Angle
 
 **Research Question:**  
 "How effective is a hybrid tool-LLM pipeline for automated vulnerability detection and remediation?"

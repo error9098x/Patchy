@@ -44,7 +44,25 @@ Check these boxes:
 - ✅ Pull request
 
 ### 2.5 Where can this GitHub App be installed?
+
+**For Development/Testing (Choose this now)**:
 - Select: **Only on this account**
+
+**Why "Only on this account" for now**:
+- ✅ Safer for development (localhost + ngrok)
+- ✅ Easier debugging (only your repos affected)
+- ✅ No risk to other users during testing
+- ✅ Can test all features on your own repos
+
+**When to switch to "Any account"**:
+- ✅ When deploying to production (Railway/Vercel)
+- ✅ When you have a stable public domain
+- ✅ When webhook endpoint is reliable
+- ✅ When ready for real users
+
+**Note**: You'll create a **separate production app** later with "Any account" when deploying. This dev app stays for testing.
+
+See: [Production Deployment Strategy](#production-deployment-strategy) below.
 
 ### 2.6 Create the App
 Click **"Create GitHub App"**
@@ -273,6 +291,70 @@ Once setup is complete, you can:
 2. Visit: http://localhost:5001
 3. Test GitHub login
 4. Begin implementing agents
+
+---
+
+## Production Deployment Strategy
+
+### Development App vs Production App
+
+**Current Setup (Development)**:
+- App name: `Patchy` or `Patchy-Dev`
+- Installation: "Only on this account"
+- Webhook: ngrok URL (changes every restart)
+- Purpose: Testing and development
+
+**Future Setup (Production)**:
+- App name: `Patchy` (official)
+- Installation: **"Any account"** ✅
+- Webhook: Stable domain (e.g., `https://patchy.app/webhook`)
+- Purpose: Public use by anyone
+
+### When to Create Production App
+
+Create a separate production GitHub App when:
+1. ✅ Code is tested and stable
+2. ✅ Deployed to Railway/Vercel with custom domain
+3. ✅ Webhook endpoint is reliable (not ngrok)
+4. ✅ Ready for users to install on their repos
+5. ✅ Privacy policy and terms of service ready
+
+### How to Create Production App
+
+1. **Keep dev app** for testing
+2. **Create new app** at https://github.com/settings/apps/new
+3. **Use same settings** but change:
+   - Name: `Patchy` (official name)
+   - Homepage: `https://patchy.app`
+   - Webhook: `https://patchy.app/webhook`
+   - Installation: **"Any account"** ✅
+4. **Update production .env** with new credentials
+5. **Deploy to Railway** with production app credentials
+
+### Two-App Strategy Benefits
+
+**Development App**:
+- Test new features safely
+- Debug on your repos only
+- Use ngrok for local testing
+- Break things without affecting users
+
+**Production App**:
+- Stable for real users
+- Monitored and reliable
+- Professional domain
+- Public marketplace listing
+
+### Migration Checklist
+
+When ready for production:
+- [ ] Code tested thoroughly
+- [ ] Deployed to Railway with custom domain
+- [ ] Create production GitHub App
+- [ ] Update production .env
+- [ ] Test production app on test repo
+- [ ] Announce to users
+- [ ] Keep dev app for future testing
 
 ---
 
