@@ -7,6 +7,13 @@ python-dotenv==1.1.0
 PyGithub==2.6.0
 requests==2.32.3
 
+# Cerebras LLM
+cerebras-cloud-sdk>=1.0.0
+
+# Background Jobs (for Railway worker)
+redis==5.0.1
+rq==1.15.1
+
 # Security Scanner
 # semgrep is installed separately: pip install semgrep
 

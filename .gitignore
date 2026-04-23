@@ -27,9 +27,13 @@ wheels/
 instance/
 .webassets-cache
 
-# Environment variables
+# Environment variables and secrets
 .env
 .env.local
+.env.*.local
+github-app-key.pem
+*.pem
+*.key
 
 # IDE
 .vscode/
@@ -45,7 +49,15 @@ Thumbs.db
 # Project specific
 scans.json
 temp/
+tmp/
 *.log
 
 # Node modules (if using any frontend tools)
 node_modules/
+
+# Redis dump
+dump.rdb
+
+# Test files
+test_*.py
+*_test.py
