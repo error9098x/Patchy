@@ -15,8 +15,11 @@ openai>=1.0.0
 redis==5.0.1
 rq==1.15.1
 
+# File Locking (for scans.json concurrent access)
+filelock>=3.0.0
+
 # Security Scanner
-# semgrep is installed separately: pip install semgrep
+semgrep>=1.60.0
 
 # Session Management
 Flask-Session==0.8.0

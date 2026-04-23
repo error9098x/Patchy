@@ -31,6 +31,7 @@ instance/
 .env
 .env.local
 .env.*.local
+.keys/
 github-app-key.pem
 *.pem
 *.key
@@ -51,6 +52,7 @@ scans.json
 temp/
 tmp/
 *.log
+logs/
 
 # Node modules (if using any frontend tools)
 node_modules/

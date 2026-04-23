@@ -1,10 +1,6 @@
 /**
  * Dashboard Controller
  * Manages repository list, scan triggers, and real-time updates.
- * 
- * BACKEND DEPENDENCIES:
- * - GET  /api/repos  - Fetch user repositories
- * - POST /api/scan   - Trigger repository scan
  */
 
 const scanningRepos = new Set();
@@ -43,13 +39,13 @@ function renderRepoGrid(repos) {
 
 function renderRepoCard(repo) {
     const isScanning = scanningRepos.has(repo.id);
-    const langColors = { 'Python': 'bg-yellow-400', 'JavaScript': 'bg-blue-400', 'TypeScript': 'bg-blue-400', 'Go': 'bg-cyan-400', 'HCL': 'bg-purple-400' };
+    const langColors = { 'Python': 'bg-yellow-400', 'JavaScript': 'bg-blue-400', 'TypeScript': 'bg-blue-400', 'Go': 'bg-cyan-400', 'HCL': 'bg-purple-400', 'HTML': 'bg-orange-400' };
     const langColor = langColors[repo.language] || 'bg-slate-400';
     let statusDot = repo.status === 'error' ? '<div class="w-2 h-2 rounded-full bg-error shadow-[0_0_8px_rgba(255,180,171,0.8)]"></div>' :
         repo.status === 'active' ? '<div class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_#4edea3] animate-pulse"></div>' :
         '<div class="w-2 h-2 rounded-full bg-surface-variant"></div>';
     let lastScanText = repo.status === 'error'
-        ? `<span class="font-body-sm text-body-sm text-error flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">warning</span> Scan Failed: ${escapeHtml(repo.last_scan)}</span>`
+        ? `<span class="font-body-sm text-body-sm text-error flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">warning</span> Scan Failed</span>`
         : `<span class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">history</span> Last scan: ${escapeHtml(repo.last_scan || 'Never')}</span>`;
     const avatarsHtml = (repo.contributors || []).slice(0, 3).map(url =>
         `<img alt="Contributor" class="w-8 h-8 rounded-full border-2 border-surface-container" src="${escapeHtml(url)}"/>`).join('');
@@ -97,18 +93,164 @@ async function handleScanClick(repoId) {
     if (!repo) return;
     scanningRepos.add(repoId);
     renderRepoGrid(allRepos);
-    showToast(`Scanning ${repo.name}...`, 'info');
+
     try {
         const result = await API.scanRepo(repoId, repo.full_name);
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        showToast(`Scan complete for ${repo.name}! PR created.`, 'success');
+        const scanId = result.scan_id;
+        const scanHash = result.scan_hash || '';
+
+        // Show progress modal
+        showScanProgressModal(repo.name, scanId, scanHash);
+
+        // Poll for status
+        const pollInterval = setInterval(async () => {
+            try {
+                const status = await API.fetchScanStatus(scanId);
+                updateScanProgressModal(status);
+
+                if (status.status === 'complete') {
+                    clearInterval(pollInterval);
+                    scanningRepos.delete(repoId);
+                    renderRepoGrid(allRepos);
+                } else if (status.status === 'failed') {
+                    clearInterval(pollInterval);
+                    scanningRepos.delete(repoId);
+                    renderRepoGrid(allRepos);
+                }
+            } catch (e) {
+                clearInterval(pollInterval);
+                scanningRepos.delete(repoId);
+                renderRepoGrid(allRepos);
+            }
+        }, 2000);
+
     } catch (error) {
         showToast(`Scan failed for ${repo.name}.`, 'error');
-    } finally {
         scanningRepos.delete(repoId);
         renderRepoGrid(allRepos);
     }
 }
+
+
+// =============================================================================
+// SCAN PROGRESS MODAL
+// =============================================================================
+
+function showScanProgressModal(repoName, scanId, scanHash) {
+    // Remove existing if any
+    const existing = document.getElementById('scan-progress-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'scan-progress-modal';
+    modal.className = 'modal-overlay active';
+    modal.innerHTML = `
+        <div class="modal-content p-0 max-w-lg" style="transform: scale(1);">
+            <div class="p-5 border-b border-[#30363d] flex justify-between items-center">
+                <div>
+                    <h2 class="font-h3 text-h3 text-on-surface flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">radar</span>
+                        Scanning in Progress
+                    </h2>
+                    <div class="font-mono text-mono text-on-surface-variant mt-1">${escapeHtml(repoName)} · ${escapeHtml(scanHash)}</div>
+                </div>
+                <button class="text-on-surface-variant hover:text-on-surface transition-colors" onclick="closeScanProgressModal()">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-5" id="scan-progress-body">
+                <div class="mb-4">
+                    <div class="flex justify-between text-body-sm mb-2">
+                        <span class="text-on-surface-variant">Progress</span>
+                        <span class="text-primary font-bold" id="progress-pct">5%</span>
+                    </div>
+                    <div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-primary-container to-primary rounded-full transition-all duration-500" id="progress-bar" style="width: 5%"></div>
+                    </div>
+                </div>
+                <ul class="progress-steps" id="modal-steps">
+                    <li class="active" data-step="clone"><span class="step-icon"><span class="spinner spinner-sm"></span></span> Clone Repository</li>
+                    <li class="pending" data-step="semgrep"><span class="step-icon"><span class="material-symbols-outlined text-[16px]">schedule</span></span> Semgrep Analysis</li>
+                    <li class="pending" data-step="fixing"><span class="step-icon"><span class="material-symbols-outlined text-[16px]">schedule</span></span> AI Fix Generation</li>
+                    <li class="pending" data-step="validate"><span class="step-icon"><span class="material-symbols-outlined text-[16px]">schedule</span></span> Validate Fixes</li>
+                    <li class="pending" data-step="branch"><span class="step-icon"><span class="material-symbols-outlined text-[16px]">schedule</span></span> Create Branch</li>
+                    <li class="pending" data-step="pr"><span class="step-icon"><span class="material-symbols-outlined text-[16px]">schedule</span></span> Open Pull Request</li>
+                </ul>
+                <div class="mt-4 text-center text-on-surface-variant font-body-sm" id="progress-detail">Initializing scan...</div>
+            </div>
+            <div class="p-4 border-t border-[#30363d] flex justify-between items-center">
+                <a href="/scans/${scanId}/live" class="text-primary hover:text-primary-fixed font-body-sm flex items-center gap-1 transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+                    View Full Details
+                </a>
+                <button class="text-on-surface-variant hover:text-error font-body-sm transition-colors" onclick="closeScanProgressModal()">Dismiss</button>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+}
+
+function updateScanProgressModal(status) {
+    const bar = document.getElementById('progress-bar');
+    const pct = document.getElementById('progress-pct');
+    const detail = document.getElementById('progress-detail');
+    const stepsEl = document.getElementById('modal-steps');
+
+    if (bar) bar.style.width = (status.progress || 0) + '%';
+    if (pct) pct.textContent = (status.progress || 0) + '%';
+
+    // Update steps
+    if (stepsEl && status.steps) {
+        const items = stepsEl.querySelectorAll('li');
+        status.steps.forEach((step, i) => {
+            if (i >= items.length) return;
+            const li = items[i];
+            li.className = step.status === 'complete' ? 'complete' :
+                           step.status === 'running' ? 'active' :
+                           step.status === 'failed' ? 'complete' :
+                           step.status === 'skipped' ? 'complete' : 'pending';
+            const icon = li.querySelector('.step-icon');
+            if (icon) {
+                if (step.status === 'complete') {
+                    icon.innerHTML = '<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: \'FILL\' 1;">check_circle</span>';
+                } else if (step.status === 'running') {
+                    icon.innerHTML = '<span class="spinner spinner-sm"></span>';
+                } else if (step.status === 'failed') {
+                    icon.innerHTML = '<span class="material-symbols-outlined text-[16px] text-error" style="font-variation-settings: \'FILL\' 1;">error</span>';
+                } else if (step.status === 'skipped') {
+                    icon.innerHTML = '<span class="material-symbols-outlined text-[16px]">remove_circle_outline</span>';
+                }
+            }
+            // Update label with message
+            const label = step.label + (step.message ? ` — ${step.message}` : '') + (step.duration ? ` [${step.duration}s]` : '');
+            // Set text content after icon
+            const textNode = li.childNodes[li.childNodes.length - 1];
+            if (textNode && textNode.nodeType === 3) {
+                textNode.textContent = ' ' + label;
+            }
+        });
+    }
+
+    // Update detail text
+    if (detail) {
+        if (status.status === 'complete') {
+            detail.innerHTML = `<span class="text-secondary flex items-center justify-center gap-2"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span> Scan complete! <a href="/scans/${status.id}" class="text-primary underline">View Results</a></span>`;
+        } else if (status.status === 'failed') {
+            detail.innerHTML = `<span class="text-error flex items-center justify-center gap-2"><span class="material-symbols-outlined">error</span> ${escapeHtml(status.error || 'Scan failed')}</span>`;
+        } else {
+            const running = (status.steps || []).find(s => s.status === 'running');
+            detail.textContent = running ? running.message || running.label : 'Processing...';
+        }
+    }
+}
+
+function closeScanProgressModal() {
+    const modal = document.getElementById('scan-progress-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
 
 const filterRepos = debounce((query) => {
     if (!query.trim()) { renderRepoGrid(allRepos); return; }

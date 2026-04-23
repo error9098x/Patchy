@@ -1,22 +1,44 @@
 """
-NVIDIA AI Endpoints LLM Client
-Uses OpenAI SDK with NVIDIA's API endpoint
-Model: minimaxai/minimax-m2.7 (shows thinking in <think> tags)
+LLM Client — Kimi K2.6 via OpenRouter
+Uses OpenAI SDK with OpenRouter's API endpoint
+Model: moonshotai/kimi-k2.6 (strong structured JSON output, no reasoning needed)
 """
 
 import os
+import json
+import time
 from typing import List, Dict, Optional, Iterator
 from openai import OpenAI
+
+try:
+    import verbose_log
+except Exception:
+    verbose_log = None
 
 # Initialize client
 def get_client():
     return OpenAI(
-        base_url="https://integrate.api.nvidia.com/v1",
-        api_key=os.environ.get("NVIDIA_API_KEY")
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.environ.get("OPENROUTER_API_KEY")
     )
 
 # Default model
-DEFAULT_MODEL = "minimaxai/minimax-m2.7"
+DEFAULT_MODEL = "moonshotai/kimi-k2.6"
+
+DEBUG = os.environ.get("PATCHY_DEBUG", "0") == "1"
+
+
+def _dbg(msg):
+    if DEBUG:
+        print(msg)
+
+
+def _extract_json(text):
+    """Extract JSON from LLM response. With json_object mode, response is already valid JSON."""
+    if not text:
+        return text
+    return text.strip()
+
 
 # =============================================================================
 # CORE FUNCTIONS
@@ -25,24 +47,24 @@ DEFAULT_MODEL = "minimaxai/minimax-m2.7"
 def chat(
     messages: List[Dict[str, str]],
     stream: bool = False,
-    temperature: float = 0.7,
-    max_tokens: int = 8192,
+    temperature: float = 0.3,
+    max_tokens: Optional[int] = None,
     top_p: float = 0.95
 ) -> str | Iterator[str]:
     """
-    Call NVIDIA AI Endpoints chat completion API.
-    
+    Call Kimi K2.6 via OpenRouter chat completion API.
+
     Args:
         messages: List of message dicts with 'role' and 'content'
         stream: Whether to stream response
         temperature: Sampling temperature (0-1)
         max_tokens: Max completion tokens
         top_p: Nucleus sampling parameter
-    
+
     Returns:
         Complete response string (if stream=False)
         Iterator of response chunks (if stream=True)
-    
+
     Example:
         >>> response = chat([
         ...     {"role": "system", "content": "You are a security expert."},
@@ -51,26 +73,52 @@ def chat(
         >>> print(response)
     """
     client = get_client()
-    
+
+    if verbose_log is not None and verbose_log.get_path():
+        verbose_log.log("llm_input", {
+            "model": DEFAULT_MODEL,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "top_p": top_p,
+            "stream": stream,
+            "message_count": len(messages),
+            "messages": messages,
+        })
+
+    t0 = time.time()
     completion = client.chat.completions.create(
         model=DEFAULT_MODEL,
         messages=messages,
         temperature=temperature,
         top_p=top_p,
         max_tokens=max_tokens,
-        stream=stream
+        stream=stream,
+        extra_body={"reasoning": {"enabled": False}}
     )
-    
+
     if stream:
         return _stream_response(completion)
-    else:
-        return completion.choices[0].message.content or ""
+
+    raw = completion.choices[0].message.content or ""
+    if verbose_log is not None and verbose_log.get_path():
+        usage = getattr(completion, "usage", None)
+        verbose_log.log("llm_output", {
+            "elapsed_s": round(time.time() - t0, 2),
+            "usage": {
+                "prompt_tokens": getattr(usage, "prompt_tokens", None),
+                "completion_tokens": getattr(usage, "completion_tokens", None),
+                "total_tokens": getattr(usage, "total_tokens", None),
+            } if usage else None,
+            "raw_chars": len(raw),
+            "raw": raw,
+        })
+    return raw
 
 
 def _stream_response(completion) -> Iterator[str]:
     """
     Generator that yields chunks from streaming response.
-    
+
     Usage:
         for chunk in chat(..., stream=True):
             print(chunk, end="", flush=True)
@@ -89,11 +137,11 @@ def _stream_response(completion) -> Iterator[str]:
 def validate_finding(finding: Dict, code_context: str) -> Dict:
     """
     ValidatorAgent: Ask LLM if finding is real or false positive.
-    
+
     Args:
         finding: Semgrep finding dict
         code_context: Surrounding code (±10 lines)
-    
+
     Returns:
         {
             "is_valid": bool,
@@ -128,22 +176,21 @@ Respond in JSON format:
     "reasoning": "brief explanation"
 }}
 """
-    
+
     messages = [
         {"role": "system", "content": "You are a security expert. Respond only with valid JSON."},
         {"role": "user", "content": prompt}
     ]
-    
-    response = chat(messages, temperature=0.3)  # Lower temp for consistency
-    
-    # Parse JSON response
-    import json
+
+    _dbg(f"    [LLM] ValidatorAgent prompt sent ({len(prompt)} chars)")
+    response = chat(messages, temperature=0.3)
+    _dbg(f"    [LLM] ValidatorAgent response ({len(response)} chars): {response[:120]}...")
+
     try:
-        return json.loads(response)
+        return json.loads(_extract_json(response))
     except json.JSONDecodeError:
-        # Fallback if LLM doesn't return valid JSON
         return {
-            "is_valid": True,  # Conservative: assume valid
+            "is_valid": True,
             "severity": "medium",
             "reasoning": "Failed to parse LLM response"
         }
@@ -152,11 +199,11 @@ Respond in JSON format:
 def generate_fix(finding: Dict, original_code: str) -> Dict:
     """
     FixAgent: Generate a code fix for a validated vulnerability.
-    
+
     Args:
         finding: Validated finding dict
         original_code: Full file content or relevant section
-    
+
     Returns:
         {
             "fixed_code": str,
@@ -193,20 +240,22 @@ Respond in JSON format:
     "confidence": 0.95
 }}
 """
-    
+
     messages = [
         {"role": "system", "content": "You are a security engineer. Respond only with valid JSON."},
         {"role": "user", "content": prompt}
     ]
-    
-    response = chat(messages, temperature=0.5, max_tokens=4096)
-    
-    import json
+
+    _dbg(f"    [LLM] FixAgent prompt sent ({len(prompt)} chars)")
+    response = chat(messages, temperature=0.3)
+    _dbg(f"    [LLM] FixAgent response ({len(response)} chars): {response[:120]}...")
+
     try:
-        return json.loads(response)
+        return json.loads(_extract_json(response))
     except json.JSONDecodeError:
+        _dbg(f"    [LLM] FixAgent JSON parse failed, using fallback")
         return {
-            "fixed_code": original_code,  # Fallback: no change
+            "fixed_code": original_code,
             "explanation": "Failed to generate fix",
             "confidence": 0.0
         }
@@ -215,7 +264,7 @@ Respond in JSON format:
 def respond_to_issue(issue_context: Dict) -> str:
     """
     IssueResponder: Generate helpful response to GitHub issue.
-    
+
     Args:
         issue_context: {
             "title": str,
@@ -223,7 +272,7 @@ def respond_to_issue(issue_context: Dict) -> str:
             "comments": List[str],
             "repo_name": str
         }
-    
+
     Returns:
         Response text to post as comment
     """
@@ -249,7 +298,7 @@ Guidelines:
 
 Response:
 """
-    
+
     messages = [
         {
             "role": "system",
@@ -257,8 +306,8 @@ Response:
         },
         {"role": "user", "content": prompt}
     ]
-    
-    return chat(messages, temperature=0.8, max_tokens=1024)
+
+    return chat(messages, temperature=0.7, max_tokens=1024)
 
 
 # =============================================================================
@@ -268,11 +317,11 @@ Response:
 def validate_findings_batch(findings: List[Dict], code_contexts: List[str]) -> List[Dict]:
     """
     Validate multiple findings in a single LLM call (cost optimization).
-    
+
     Args:
         findings: List of Semgrep findings
         code_contexts: Corresponding code contexts
-    
+
     Returns:
         List of validation results
     """
@@ -291,7 +340,7 @@ Code:
 ```
 ---
 """
-    
+
     prompt = f"""You are a security expert reviewing {len(findings)} potential vulnerabilities.
 
 {findings_text}
@@ -304,19 +353,19 @@ Respond with a JSON array:
     {{"finding_id": 2, "is_valid": false, "severity": "low", "reasoning": "..."}}
 ]
 """
-    
+
     messages = [
         {"role": "system", "content": "You are a security expert. Respond only with valid JSON array."},
         {"role": "user", "content": prompt}
     ]
-    
-    response = chat(messages, temperature=0.3, max_tokens=8192)
-    
-    import json
+
+    _dbg(f"    [LLM] BatchValidator prompt sent ({len(prompt)} chars)")
+    response = chat(messages, temperature=0.3)
+    _dbg(f"    [LLM] BatchValidator response ({len(response)} chars)")
+
     try:
-        return json.loads(response)
+        return json.loads(_extract_json(response))
     except json.JSONDecodeError:
-        # Fallback: validate individually
         return [validate_finding(f, c) for f, c in zip(findings, code_contexts)]
 
 
@@ -326,28 +375,28 @@ Respond with a JSON array:
 
 def test_connection() -> bool:
     """
-    Test if NVIDIA AI Endpoints API is accessible.
-    
+    Test if OpenRouter API is accessible.
+
     Returns:
         True if connection successful, False otherwise
     """
     try:
         response = chat(
             messages=[{"role": "user", "content": "Say 'OK' if you can hear me."}],
-            max_tokens=10
+            max_tokens=100
         )
         return "ok" in response.lower()
     except Exception as e:
-        print(f"NVIDIA API connection failed: {e}")
+        print(f"OpenRouter API connection failed: {e}")
         return False
 
 
 if __name__ == "__main__":
     # Test the client
-    print("Testing NVIDIA AI Endpoints connection...")
+    print("Testing Kimi K2.6 via OpenRouter...")
     if test_connection():
         print("✅ Connection successful!")
-        
+
         # Test streaming
         print("\nTesting streaming:")
         for chunk in chat(
@@ -358,4 +407,4 @@ if __name__ == "__main__":
             print(chunk, end="", flush=True)
         print("\n")
     else:
-        print("❌ Connection failed. Check NVIDIA_API_KEY.")
+        print("❌ Connection failed. Check OPENROUTER_API_KEY.")

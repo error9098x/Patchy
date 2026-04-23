@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}Live Scan{% endblock %}
+
+{% block body %}
+{% include 'components/navbar_app.html' %}
+
+<div class="flex flex-1 overflow-hidden relative">
+    {% include 'components/sidebar.html' %}
+
+    <main class="app-main flex-1 md:ml-64 overflow-y-auto p-4 md:p-8 bg-surface" role="main">
+        <div class="max-w-5xl mx-auto space-y-6">
+
+            <a href="{{ url_for('scans') }}" class="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary font-body-sm text-body-sm transition-colors mb-4">
+                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                Back to Scan History
+            </a>
+
+            <!-- Scan Header -->
+            <div class="bg-surface-container rounded-lg border border-outline-variant p-6 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-primary" id="live-status-bar"></div>
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="material-symbols-outlined text-primary">radar</span>
+                            <h1 class="font-h2 text-h2 text-on-surface" id="live-repo-name">Loading...</h1>
+                        </div>
+                        <div class="flex items-center gap-4 text-on-surface-variant font-mono text-mono">
+                            <span class="flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm">fingerprint</span>
+                                <span id="live-scan-hash">—</span>
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm">schedule</span>
+                                <span id="live-elapsed">0s</span>
+                            </span>
+                            <span class="px-2 py-0.5 rounded text-[11px] font-bold border" id="live-status-badge">INITIALIZING</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <div class="text-primary font-h3 text-h3" id="live-progress-pct">5%</div>
+                            <div class="font-label-caps text-label-caps text-on-surface-variant">PROGRESS</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-primary-container to-primary rounded-full transition-all duration-700 ease-out" id="live-progress-bar" style="width: 5%"></div>
+                </div>
+            </div>
+
+            <!-- PR CELEBRATION (hidden until complete with PR) -->
+            <div class="hidden" id="pr-celebration">
+                <div class="relative overflow-hidden bg-gradient-to-br from-secondary/10 via-primary/5 to-tertiary/10 border-2 border-secondary/40 rounded-lg p-6 animate-fade-in">
+                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-secondary/10 rounded-full blur-3xl"></div>
+                    <div class="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-full bg-secondary/20 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-secondary text-[32px]" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+                            </div>
+                            <div>
+                                <div class="font-label-caps text-label-caps text-secondary">PULL REQUEST CREATED</div>
+                                <div class="font-h3 text-h3 text-on-surface" id="pr-celebration-title">Fixes ready for review</div>
+                                <div class="font-mono text-mono text-on-surface-variant mt-1" id="pr-celebration-meta">—</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <a href="/scans/{{ scan_id }}" class="px-4 py-2 rounded border border-outline text-on-surface hover:bg-surface-container-high transition-colors font-body-sm text-body-sm">
+                                Full Results
+                            </a>
+                            <a id="pr-celebration-link" href="#" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-5 py-3 rounded bg-secondary text-on-secondary font-semibold hover:brightness-110 transition-all shadow-lg">
+                                <span class="material-symbols-outlined">open_in_new</span>
+                                View Pull Request on GitHub
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pipeline Timeline -->
+            <div class="bg-surface-container rounded-lg border border-outline-variant overflow-hidden">
+                <div class="px-6 py-4 border-b border-outline-variant flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">account_tree</span>
+                    <h2 class="font-h3 text-h3 text-on-surface">Pipeline Steps</h2>
+                </div>
+                <div class="divide-y divide-outline-variant" id="live-steps-container">
+                    <div class="flex justify-center py-8"><div class="spinner"></div></div>
+                </div>
+            </div>
+
+            <!-- AGENT THEATRE -->
+            <div class="bg-surface-container rounded-lg border border-outline-variant overflow-hidden" id="agent-theatre-wrap">
+                <div class="px-6 py-4 border-b border-outline-variant flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-tertiary">smart_toy</span>
+                        <h2 class="font-h3 text-h3 text-on-surface">Agent Theatre</h2>
+                        <span class="font-label-caps text-label-caps text-on-surface-variant" id="theatre-sub">waiting for agent...</span>
+                    </div>
+                    <div class="font-mono text-mono text-on-surface-variant" id="theatre-counter">—</div>
+                </div>
+
+                <!-- Current finding panel -->
+                <div class="px-6 py-4 border-b border-outline-variant hidden" id="current-finding-panel">
+                    <div class="flex items-center gap-3 mb-2">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border" id="current-finding-severity">—</span>
+                        <span class="font-body-md text-on-surface font-semibold" id="current-finding-check">—</span>
+                    </div>
+                    <div class="font-mono text-mono text-on-surface-variant" id="current-finding-loc">—</div>
+                    <div class="font-body-sm text-on-surface-variant mt-1 opacity-80" id="current-finding-msg"></div>
+                </div>
+
+                <!-- Event stream -->
+                <div class="max-h-[480px] overflow-y-auto" id="theatre-events">
+                    <div class="flex justify-center py-10 text-on-surface-variant font-body-sm">
+                        Agent idle. Events appear here as the agent works on each finding.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-surface-container rounded-lg border border-outline-variant p-4 text-center">
+                    <div class="text-on-surface font-h3 text-h3" id="stat-findings">—</div>
+                    <div class="font-label-caps text-label-caps text-on-surface-variant mt-1">FINDINGS</div>
+                </div>
+                <div class="bg-surface-container rounded-lg border border-outline-variant p-4 text-center">
+                    <div class="text-primary font-h3 text-h3" id="stat-fixes">—</div>
+                    <div class="font-label-caps text-label-caps text-on-surface-variant mt-1">FIXES</div>
+                </div>
+                <div class="bg-surface-container rounded-lg border border-outline-variant p-4 text-center">
+                    <div class="text-secondary font-h3 text-h3" id="stat-valid">—</div>
+                    <div class="font-label-caps text-label-caps text-on-surface-variant mt-1">VALID</div>
+                </div>
+                <div class="bg-surface-container rounded-lg border border-outline-variant p-4 text-center">
+                    <div class="text-tertiary font-h3 text-h3" id="stat-pr">—</div>
+                    <div class="font-label-caps text-label-caps text-on-surface-variant mt-1">PR</div>
+                </div>
+            </div>
+
+            <div class="hidden text-center py-6" id="live-complete-actions">
+                <a href="/scans/{{ scan_id }}" class="btn-primary">
+                    VIEW FULL RESULTS
+                    <span class="material-symbols-outlined arrow">arrow_forward</span>
+                </a>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<style>
+@keyframes fade-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in { animation: fade-in 0.5s ease-out both; }
+@keyframes slide-in-left { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+.theatre-event { animation: slide-in-left 0.25s ease-out both; }
+.sev-critical { background: rgba(239,68,68,.12); color: #f87171; border-color: rgba(239,68,68,.35); }
+.sev-high     { background: rgba(249,115,22,.12); color: #fb923c; border-color: rgba(249,115,22,.35); }
+.sev-medium, .sev-moderate, .sev-warning { background: rgba(234,179,8,.12); color: #facc15; border-color: rgba(234,179,8,.35); }
+.sev-low, .sev-info { background: rgba(59,130,246,.12); color: #60a5fa; border-color: rgba(59,130,246,.35); }
+.sev-error { background: rgba(239,68,68,.12); color: #f87171; border-color: rgba(239,68,68,.35); }
+.sev-unknown  { background: rgba(148,163,184,.12); color: #94a3b8; border-color: rgba(148,163,184,.35); }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    const scanId = '{{ scan_id }}';
+    let startTime = Date.now();
+    let pollTimer = null;
+    let elapsedTimer = null;
+    let lastEventCount = 0;
+    let lastFindingKey = null;
+
+    function escapeHtml(s) {
+        if (s === undefined || s === null) return '';
+        return String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function updateElapsed() {
+        const el = document.getElementById('live-elapsed');
+        if (!el) return;
+        const s = Math.floor((Date.now() - startTime) / 1000);
+        el.textContent = s < 60 ? s + 's' : Math.floor(s/60) + 'm ' + (s%60) + 's';
+    }
+
+    function renderSteps(steps) {
+        const container = document.getElementById('live-steps-container');
+        if (!container || !steps) return;
+        container.innerHTML = steps.map(step => {
+            let iconHtml, statusClass, borderClass;
+            if (step.status === 'complete') {
+                iconHtml = '<span class="material-symbols-outlined text-secondary" style="font-variation-settings: \'FILL\' 1;">check_circle</span>';
+                statusClass = 'text-secondary'; borderClass = 'border-l-secondary';
+            } else if (step.status === 'running') {
+                iconHtml = '<div class="spinner spinner-sm"></div>';
+                statusClass = 'text-primary'; borderClass = 'border-l-primary';
+            } else if (step.status === 'failed') {
+                iconHtml = '<span class="material-symbols-outlined text-error" style="font-variation-settings: \'FILL\' 1;">error</span>';
+                statusClass = 'text-error'; borderClass = 'border-l-error';
+            } else if (step.status === 'skipped') {
+                iconHtml = '<span class="material-symbols-outlined text-outline">remove_circle_outline</span>';
+                statusClass = 'text-outline'; borderClass = 'border-l-outline';
+            } else {
+                iconHtml = '<span class="material-symbols-outlined text-outline">radio_button_unchecked</span>';
+                statusClass = 'text-outline'; borderClass = 'border-l-transparent';
+            }
+            const duration = step.duration ? `<span class="font-mono text-mono text-on-surface-variant ml-2">[${step.duration}s]</span>` : '';
+            const detail = step.detail ? `<div class="font-mono text-mono text-on-surface-variant mt-1 text-[12px] opacity-70">${escapeHtml(step.detail)}</div>` : '';
+            return `
+                <div class="px-6 py-4 flex items-start gap-4 border-l-2 ${borderClass} ${step.status === 'running' ? 'bg-primary/5' : ''}">
+                    <div class="w-6 h-6 flex items-center justify-center shrink-0 mt-0.5">${iconHtml}</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="font-body-md text-on-surface font-semibold">Step ${step.step}/6 — ${escapeHtml(step.label)}</span>
+                            ${duration}
+                        </div>
+                        ${step.message ? `<div class="${statusClass} font-body-sm mt-0.5">${escapeHtml(step.message)}</div>` : ''}
+                        ${detail}
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
+    function updateCurrentFinding(cf) {
+        const panel = document.getElementById('current-finding-panel');
+        if (!panel) return;
+        if (!cf) {
+            panel.classList.add('hidden');
+            return;
+        }
+        panel.classList.remove('hidden');
+        const sev = (cf.severity || 'unknown').toLowerCase();
+        const sevEl = document.getElementById('current-finding-severity');
+        sevEl.textContent = sev.toUpperCase();
+        sevEl.className = `px-2 py-0.5 rounded text-[10px] font-bold border sev-${sev || 'unknown'}`;
+        document.getElementById('current-finding-check').textContent = cf.check_id || '—';
+        document.getElementById('current-finding-loc').textContent = `${cf.file || '?'}:${cf.line || '?'}`;
+        document.getElementById('current-finding-msg').textContent = cf.message || '';
+        const ctr = document.getElementById('theatre-counter');
+        if (ctr && cf.index && cf.total) ctr.textContent = `file ${cf.index} of ${cf.total}`;
+        const sub = document.getElementById('theatre-sub');
+        if (sub) sub.textContent = 'agent working';
+    }
+
+    function eventRow(ev) {
+        let icon = 'bolt', tone = 'text-on-surface', label = ev.action || ev.type, detail = '';
+        if (ev.type === 'finding_start') {
+            icon = 'radar'; tone = 'text-primary';
+            label = `analyzing ${ev.check_id || 'finding'}`;
+            detail = `${ev.file || '?'}:${ev.line || '?'}`;
+        } else if (ev.type === 'finding_end') {
+            icon = ev.ok ? 'task_alt' : 'cancel';
+            tone = ev.ok ? 'text-secondary' : 'text-error';
+            label = ev.ok ? `fixed (conf ${ev.confidence ?? '?'})` : `could not fix — ${ev.outcome}`;
+            detail = `${ev.turns || '?'} turns` + (ev.duration_s ? ` · ${ev.duration_s}s` : '') + (ev.detail ? ` · ${ev.detail}` : '');
+        } else if (ev.action === 'read_files') {
+            icon = 'folder_open'; tone = ev.ok ? 'text-primary' : 'text-error';
+            label = `read ${(ev.files || []).length} file(s)`;
+            detail = (ev.files || []).join(', ') + (ev.halluc && ev.halluc.length ? ` · ⚠ dropped: ${ev.halluc.join(', ')}` : '') + (ev.reason ? ` — ${ev.reason}` : '');
+        } else if (ev.action === 'grep') {
+            icon = 'search'; tone = 'text-primary';
+            label = `grep /${ev.pattern || ''}/`;
+            detail = `${ev.hits || 0} matches` + (ev.reason ? ` — ${ev.reason}` : '');
+        } else if (ev.action === 'fix') {
+            icon = 'build_circle'; tone = ev.ok ? 'text-secondary' : 'text-error';
+            label = `proposed fix for ${ev.file}`;
+            detail = `confidence ${ev.confidence} · ${ev.patch_chars || 0} chars` + (ev.explanation ? ` — ${ev.explanation}` : '');
+        } else if (ev.action === 'give_up') {
+            icon = 'flag'; tone = 'text-outline';
+            label = 'agent gave up';
+            detail = ev.reason || '';
+        } else if (ev.action === 'bad_json') {
+            icon = 'broken_image'; tone = 'text-error';
+            label = 'invalid JSON from LLM';
+            detail = ev.detail || '';
+        } else if (ev.action === 'api_error') {
+            icon = 'cloud_off'; tone = 'text-error';
+            label = 'LLM API error';
+            detail = ev.detail || '';
+        } else if (ev.action === 'unknown') {
+            icon = 'help'; tone = 'text-error';
+            label = 'unknown action';
+            detail = ev.detail || '';
+        }
+
+        const mark = ev.ok === false ? '✗' : (ev.type === 'finding_end' && ev.ok ? '✓' : '');
+        const markCls = ev.ok === false ? 'text-error' : 'text-secondary';
+        const turnBadge = (ev.type === 'turn' && ev.turn !== undefined)
+            ? `<span class="font-mono text-mono text-on-surface-variant mr-2">t${ev.turn}</span>` : '';
+
+        return `
+            <div class="theatre-event px-6 py-3 flex items-start gap-3 hover:bg-surface-container-high/50">
+                <span class="material-symbols-outlined ${tone} text-[20px] shrink-0 mt-0.5">${icon}</span>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1">
+                        ${turnBadge}
+                        <span class="font-body-sm text-on-surface">${escapeHtml(label)}</span>
+                        ${mark ? `<span class="${markCls} ml-1 font-bold">${mark}</span>` : ''}
+                    </div>
+                    ${detail ? `<div class="font-mono text-mono text-on-surface-variant mt-0.5 text-[11px] opacity-70 truncate">${escapeHtml(detail)}</div>` : ''}
+                </div>
+            </div>`;
+    }
+
+    function renderEvents(events) {
+        const container = document.getElementById('theatre-events');
+        if (!container || !events) return;
+        if (events.length === lastEventCount) return;
+
+        if (events.length === 0) return;
+
+        if (lastEventCount === 0) {
+            container.innerHTML = '';
+        }
+
+        // append new events only
+        const newEvents = events.slice(lastEventCount);
+        const divider = (ev) => {
+            if (ev.type !== 'finding_start') return '';
+            return `<div class="px-6 py-2 bg-surface-container-highest/50 border-y border-outline-variant font-label-caps text-label-caps text-on-surface-variant">
+                File ${ev.finding_index || '?'} of ${ev.finding_total || '?'}
+            </div>`;
+        };
+        const html = newEvents.map(ev => divider(ev) + eventRow(ev)).join('');
+        container.insertAdjacentHTML('beforeend', html);
+        container.scrollTop = container.scrollHeight;
+        lastEventCount = events.length;
+    }
+
+    function updatePRCelebration(data) {
+        if (!data.pr_url) return;
+        const wrap = document.getElementById('pr-celebration');
+        const link = document.getElementById('pr-celebration-link');
+        const title = document.getElementById('pr-celebration-title');
+        const meta = document.getElementById('pr-celebration-meta');
+        if (!wrap.classList.contains('hidden')) return;
+        wrap.classList.remove('hidden');
+        link.href = data.pr_url;
+        const n = data.pr_number ? `#${data.pr_number}` : '';
+        title.textContent = `PR ${n} is ready for review`;
+        meta.textContent = `${data.repo || ''}  ·  branch: ${data.pr_branch || '—'}  ·  ${data.fixes_valid || 0} fix(es)`;
+    }
+
+    function updateUI(data) {
+        const bar = document.getElementById('live-progress-bar');
+        const pct = document.getElementById('live-progress-pct');
+        if (bar) bar.style.width = (data.progress || 0) + '%';
+        if (pct) pct.textContent = (data.progress || 0) + '%';
+
+        const repoEl = document.getElementById('live-repo-name');
+        if (repoEl && data.repo) repoEl.textContent = data.repo;
+        const hashEl = document.getElementById('live-scan-hash');
+        if (hashEl && data.scan_hash) hashEl.textContent = data.scan_hash;
+
+        const badge = document.getElementById('live-status-badge');
+        if (badge) {
+            const statusMap = {
+                'cloning': ['CLONING', 'bg-primary/10 text-primary border-primary/30'],
+                'scanning': ['SCANNING', 'bg-primary/10 text-primary border-primary/30'],
+                'fixing': ['AGENT FIXING', 'bg-tertiary/10 text-tertiary border-tertiary/30'],
+                'validating': ['VALIDATING', 'bg-secondary/10 text-secondary border-secondary/30'],
+                'creating_pr': ['CREATING PR', 'bg-secondary/10 text-secondary border-secondary/30'],
+                'complete': ['COMPLETE', 'bg-secondary/10 text-secondary border-secondary/30'],
+                'failed': ['FAILED', 'bg-error/10 text-error border-error/30'],
+            };
+            const [label, cls] = statusMap[data.status] || ['PROCESSING', 'bg-primary/10 text-primary border-primary/30'];
+            badge.textContent = label;
+            badge.className = `px-2 py-0.5 rounded text-[11px] font-bold border ${cls}`;
+        }
+
+        const statusBar = document.getElementById('live-status-bar');
+        if (statusBar) {
+            if (data.status === 'complete') statusBar.className = 'absolute top-0 left-0 w-1 h-full bg-secondary';
+            else if (data.status === 'failed') statusBar.className = 'absolute top-0 left-0 w-1 h-full bg-error';
+            else statusBar.className = 'absolute top-0 left-0 w-1 h-full bg-primary';
+        }
+
+        renderSteps(data.steps);
+        updateCurrentFinding(data.current_finding);
+        renderEvents(data.agent_events || []);
+        updatePRCelebration(data);
+
+        const sf = document.getElementById('stat-findings');
+        if (sf) sf.textContent = data.findings_count || 0;
+        const sx = document.getElementById('stat-fixes');
+        if (sx) sx.textContent = data.fixes_generated || 0;
+        const sv = document.getElementById('stat-valid');
+        if (sv) sv.textContent = data.fixes_valid || 0;
+        const sp = document.getElementById('stat-pr');
+        if (sp) sp.textContent = data.pr_url ? '✓' : '—';
+
+        if (data.status === 'complete' || data.status === 'failed') {
+            const sub = document.getElementById('theatre-sub');
+            if (sub) sub.textContent = data.status;
+            const actions = document.getElementById('live-complete-actions');
+            if (actions && !data.pr_url) actions.classList.remove('hidden');
+            clearInterval(pollTimer);
+            clearInterval(elapsedTimer);
+        }
+    }
+
+    async function poll() {
+        try {
+            const data = await API.fetchScanStatus(scanId);
+            updateUI(data);
+        } catch (e) {
+            console.error('[Live] Poll failed:', e);
+        }
+    }
+
+    elapsedTimer = setInterval(updateElapsed, 1000);
+    poll();
+    pollTimer = setInterval(poll, 1500);
+})();
+</script>
+{% endblock %}
