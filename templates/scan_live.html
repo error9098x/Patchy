@@ -618,7 +618,9 @@
                 </div>
             `;
         } else {
-            const contentHtml = isStreaming ? content : escapeHtml(content);
+            const contentHtml = role === 'assistant'
+                ? parseSimpleMarkdown(content)
+                : escapeHtml(content);
             messageDiv.innerHTML = `
                 <div class="max-w-[80%] ${bubbleClass} rounded-2xl px-4 py-3 ${isStreaming ? 'streaming-message' : ''}">
                     <div class="text-[15px] leading-relaxed" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">${contentHtml}</div>
@@ -643,11 +645,19 @@
         
         const boldPlaceholder = '\u0001BOLD\u0001';
         const italicPlaceholder = '\u0002ITALIC\u0002';
+        const codePlaceholder = '\u0003CODE\u0003';
         const boldParts = [];
         const italicParts = [];
+        const codeParts = [];
         
+        // Extract inline code first so markdown inside code stays literal.
+        let result = text.replace(/`([^`]+?)`/g, (match, content) => {
+            codeParts.push(content);
+            return codePlaceholder + (codeParts.length - 1) + '\u0003';
+        });
+
         // Extract bold text
-        let result = text.replace(/\*\*(.+?)\*\*/g, (match, content) => {
+        result = result.replace(/\*\*(.+?)\*\*/g, (match, content) => {
             boldParts.push(content);
             return boldPlaceholder + (boldParts.length - 1) + '\u0001';
         });
@@ -674,6 +684,15 @@
         result = result.replace(/\u0002ITALIC\u0002(\d+)\u0002/g, (match, index) => {
             const content = italicParts[parseInt(index)];
             return `<em>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</em>`;
+        });
+
+        // Restore inline code
+        result = result.replace(/\u0003CODE\u0003(\d+)\u0003/g, (match, index) => {
+            const content = codeParts[parseInt(index)]
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            return `<code class="inline-code">${content}</code>`;
         });
         
         // Handle bullets
