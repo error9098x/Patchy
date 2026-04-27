@@ -175,6 +175,55 @@
                 </a>
             </div>
 
+            <!-- AI Chat Interface (shown after scan completes) -->
+            <div class="hidden" id="ai-chat-section">
+                <div class="relative overflow-hidden rounded-lg border border-outline-variant bg-gradient-to-br from-[#1a1f2e] via-[#16191f] to-[#1a1f2e]">
+                    <!-- Gradient overlay -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none"></div>
+                    
+                    <!-- Header -->
+                    <div class="relative px-6 py-4 border-b border-outline-variant/50 backdrop-blur-sm">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                                <span class="material-symbols-outlined text-on-primary text-[20px]">smart_toy</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-[18px] text-on-surface">Ask about this scan</h3>
+                                <p class="text-[13px] text-on-surface-variant">AI assistant with full context of vulnerabilities and fixes</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div class="relative px-6 py-4 max-h-[500px] overflow-y-auto" id="chat-messages">
+                        <div class="text-center py-8 text-on-surface-variant text-[14px]">
+                            Ask me anything about the security findings, fixes, or recommendations.
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="relative px-6 py-4 border-t border-outline-variant/50 backdrop-blur-sm">
+                        <div class="flex gap-3">
+                            <input 
+                                type="text" 
+                                id="chat-input" 
+                                placeholder="Ask about vulnerabilities, fixes, or get recommendations..."
+                                class="flex-1 bg-surface-container border border-outline-variant rounded-lg px-4 py-3 text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary transition-colors text-[15px]"
+                                disabled
+                            />
+                            <button 
+                                id="chat-send-btn"
+                                class="px-6 py-3 bg-gradient-to-r from-primary to-secondary text-on-primary rounded-lg font-medium hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                disabled
+                            >
+                                <span class="material-symbols-outlined text-[20px]">send</span>
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 </div>
@@ -190,6 +239,80 @@
 .sev-low, .sev-info { background: rgba(59,130,246,.12); color: #60a5fa; border-color: rgba(59,130,246,.35); }
 .sev-error { background: rgba(239,68,68,.12); color: #f87171; border-color: rgba(239,68,68,.35); }
 .sev-unknown  { background: rgba(148,163,184,.12); color: #94a3b8; border-color: rgba(148,163,184,.35); }
+
+/* Chat streaming animation - Bouncing dots */
+.streaming-message {
+    position: relative;
+}
+
+/* Hide the message bubble until there's content */
+.streaming-message:empty {
+    display: none;
+}
+
+.streaming-message::after {
+    content: '';
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+/* Create 3 bouncing dots */
+.streaming-message::before {
+    content: '';
+    position: absolute;
+    right: -50px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 5px;
+    width: 50px;
+    height: 20px;
+}
+
+/* Actual bouncing dots implementation */
+.streaming-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 12px 16px;
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 16px;
+}
+
+.streaming-indicator .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6366f1;
+    animation: bop 1.2s ease-in-out infinite;
+}
+
+.streaming-indicator .dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.streaming-indicator .dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes bop {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-6px);
+        opacity: 1;
+    }
+}
+
+/* Smooth scroll for chat */
+#chat-messages {
+    scroll-behavior: smooth;
+}
 </style>
 {% endblock %}
 
@@ -448,8 +571,257 @@
             
             clearInterval(pollTimer);
             clearInterval(elapsedTimer);
+            
+            // Show and enable chat interface when scan completes
+            showChatInterface();
         }
     }
+
+    function showChatInterface() {
+        const chatSection = document.getElementById('ai-chat-section');
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('chat-send-btn');
+        
+        if (chatSection) {
+            chatSection.classList.remove('hidden');
+            if (chatInput) chatInput.disabled = false;
+            if (sendBtn) sendBtn.disabled = false;
+        }
+    }
+
+    // Chat functionality
+    let chatHistory = [];
+    let isStreaming = false;
+
+    function addMessage(role, content, isStreaming = false) {
+        const messagesContainer = document.getElementById('chat-messages');
+        if (!messagesContainer) return;
+
+        // Remove welcome message if present
+        const welcome = messagesContainer.querySelector('.text-center');
+        if (welcome) welcome.remove();
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `flex gap-3 mb-4 ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+        
+        const bubbleClass = role === 'user' 
+            ? 'bg-gradient-to-r from-primary to-secondary text-on-primary'
+            : 'bg-surface-container border border-outline-variant text-on-surface';
+        
+        if (isStreaming && !content) {
+            // Show bouncing dots indicator while waiting for content
+            messageDiv.innerHTML = `
+                <div class="streaming-indicator">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            `;
+        } else {
+            const contentHtml = isStreaming ? content : escapeHtml(content);
+            messageDiv.innerHTML = `
+                <div class="max-w-[80%] ${bubbleClass} rounded-2xl px-4 py-3 ${isStreaming ? 'streaming-message' : ''}">
+                    <div class="text-[15px] leading-relaxed" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">${contentHtml}</div>
+                </div>
+            `;
+        }
+        
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        return isStreaming && !content ? messageDiv : messageDiv.querySelector('.streaming-message > div, div > div');
+    }
+
+    function parseSimpleMarkdown(text) {
+        if (!text) return '';
+        
+        // Strategy: Process markdown BEFORE escaping HTML
+        // 1. Replace bold **text** with placeholder
+        // 2. Replace italic *text* with placeholder  
+        // 3. Escape HTML
+        // 4. Restore placeholders with HTML tags
+        
+        const boldPlaceholder = '\u0001BOLD\u0001';
+        const italicPlaceholder = '\u0002ITALIC\u0002';
+        const boldParts = [];
+        const italicParts = [];
+        
+        // Extract bold text
+        let result = text.replace(/\*\*(.+?)\*\*/g, (match, content) => {
+            boldParts.push(content);
+            return boldPlaceholder + (boldParts.length - 1) + '\u0001';
+        });
+        
+        // Extract italic text (single asterisk not part of bold)
+        result = result.replace(/\*(.+?)\*/g, (match, content) => {
+            italicParts.push(content);
+            return italicPlaceholder + (italicParts.length - 1) + '\u0002';
+        });
+        
+        // Escape HTML in remaining text
+        result = result
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        
+        // Restore bold
+        result = result.replace(/\u0001BOLD\u0001(\d+)\u0001/g, (match, index) => {
+            const content = boldParts[parseInt(index)];
+            return `<strong>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</strong>`;
+        });
+        
+        // Restore italic
+        result = result.replace(/\u0002ITALIC\u0002(\d+)\u0002/g, (match, index) => {
+            const content = italicParts[parseInt(index)];
+            return `<em>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</em>`;
+        });
+        
+        // Handle bullets
+        result = result.replace(/^- (.+)$/gm, '• $1');
+        
+        // Handle line breaks
+        result = result.replace(/\n/g, '<br>');
+        
+        return result;
+    }
+
+    async function sendChatMessage() {
+        const input = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('chat-send-btn');
+        
+        if (!input || !sendBtn || isStreaming) return;
+        
+        const message = input.value.trim();
+        if (!message) return;
+
+        console.log('[Chat] Sending message:', message);
+
+        // Add user message
+        addMessage('user', message);
+        chatHistory.push({ role: 'user', content: message });
+        
+        input.value = '';
+        input.disabled = true;
+        sendBtn.disabled = true;
+        isStreaming = true;
+
+        // Add assistant message placeholder (bouncing dots)
+        const dotsIndicator = addMessage('assistant', '', true);
+        let fullResponse = '';
+        let assistantDiv = null;
+
+        try {
+            console.log('[Chat] Fetching from API...');
+            const response = await fetch(`/api/chat/${scanId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    message: message,
+                    history: chatHistory 
+                })
+            });
+
+            console.log('[Chat] Response status:', response.status);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('[Chat] API error:', errorData);
+                throw new Error(errorData.error || `HTTP ${response.status}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            console.log('[Chat] Starting to read stream...');
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) {
+                    console.log('[Chat] Stream complete');
+                    break;
+                }
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') {
+                            console.log('[Chat] Received DONE signal');
+                            continue;
+                        }
+                        
+                        try {
+                            const parsed = JSON.parse(data);
+                            if (parsed.error) {
+                                console.error('[Chat] Stream error:', parsed.error);
+                                throw new Error(parsed.error);
+                            }
+                            if (parsed.content) {
+                                fullResponse += parsed.content;
+                                
+                                // Replace dots indicator with text bubble on first content
+                                if (!assistantDiv) {
+                                    dotsIndicator.remove();
+                                    assistantDiv = addMessage('assistant', fullResponse, true);
+                                } else {
+                                    assistantDiv.innerHTML = parseSimpleMarkdown(fullResponse);
+                                }
+                            }
+                        } catch (e) {
+                            console.error('[Chat] JSON parse error:', e, 'Data:', data);
+                        }
+                    }
+                }
+            }
+
+            console.log('[Chat] Full response length:', fullResponse.length);
+
+            if (!fullResponse) {
+                throw new Error('No response received from AI');
+            }
+
+            chatHistory.push({ role: 'assistant', content: fullResponse });
+            if (assistantDiv) {
+                assistantDiv.parentElement.classList.remove('streaming-message');
+            }
+
+        } catch (error) {
+            console.error('[Chat] Error:', error);
+            if (dotsIndicator && dotsIndicator.parentElement) {
+                dotsIndicator.remove();
+            }
+            const errorDiv = addMessage('assistant', `Error: ${error.message}`, false);
+            errorDiv.innerHTML = `<span class="text-error">Error: ${escapeHtml(error.message)}</span>`;
+        } finally {
+            isStreaming = false;
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+        }
+    }
+
+    // Chat event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('chat-send-btn');
+        
+        if (chatInput) {
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage();
+                }
+            });
+        }
+        
+        if (sendBtn) {
+            sendBtn.addEventListener('click', sendChatMessage);
+        }
+    });
 
     async function loadFindings() {
         try {
@@ -482,6 +854,9 @@
             }
             
             section.classList.remove('hidden');
+            
+            // Show chat interface
+            showChatInterface();
         } catch (error) {
             console.error('[Live] Failed to load findings:', error);
         }

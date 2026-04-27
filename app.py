@@ -257,6 +257,179 @@ def logout():
     return redirect(url_for('index'))
 
 
+# =============================================================================
+# AI CHAT API
+# =============================================================================
+
+@app.route('/api/chat/<scan_id>', methods=['POST'])
+def chat_with_scan(scan_id):
+    """Stream AI chat responses about a specific scan."""
+    import json
+    import traceback
+    
+    try:
+        from tools.nvidia_client import chat_stream
+    except ImportError as e:
+        print(f"[CHAT ERROR] Failed to import chat_stream: {e}")
+        traceback.print_exc()
+        return jsonify({'error': 'Chat module not available'}), 500
+    
+    try:
+        data = request.get_json()
+        user_message = data.get('message', '')
+        history = data.get('history', [])
+        
+        print(f"[CHAT] Received message for scan {scan_id}: {user_message[:50]}...")
+        
+        if not user_message:
+            return jsonify({'error': 'No message provided'}), 400
+        
+        # Get scan details for context
+        scan = storage.get_scan(scan_id)
+        if not scan:
+            print(f"[CHAT ERROR] Scan {scan_id} not found")
+            return jsonify({'error': 'Scan not found'}), 404
+        
+        print(f"[CHAT] Found scan: {scan.get('repo', 'unknown')}, {scan.get('findings_count', 0)} findings")
+        
+        # Build context from scan
+        findings_summary = []
+        for f in scan.get('findings', [])[:10]:  # Limit to 10 findings for context
+            findings_summary.append({
+                'file': f.get('file', ''),
+                'severity': f.get('severity', ''),
+                'type': f.get('type', ''),
+                'message': f.get('message', ''),
+                'fix_status': f.get('fix_status', ''),
+            })
+        
+        context = {
+            'repo': scan.get('repo', ''),
+            'status': scan.get('status', ''),
+            'findings_count': scan.get('findings_count', 0),
+            'fixes_generated': scan.get('fixes_generated', 0),
+            'fixes_valid': scan.get('fixes_valid', 0),
+            'pr_url': scan.get('pr_url'),
+            'findings': findings_summary,
+        }
+        
+        # System prompt
+        system_prompt = f"""You are Patchy's security analysis assistant. You help developers understand security scan results.
+
+Scan Context:
+- Repository: {context['repo']}
+- Status: {context['status']}
+- Findings: {context['findings_count']} vulnerabilities detected
+- Fixes: {context['fixes_generated']} generated, {context['fixes_valid']} valid
+- PR: {'Created' if context['pr_url'] else 'Not created'}
+
+Key Findings:
+{json.dumps(findings_summary, indent=2)}
+
+Guidelines:
+- Be concise and helpful
+- Use simple formatting: bullets (- or *), bold (**text**), italic (*text*)
+- NO code blocks, NO large headings, NO complex markdown
+- Keep responses focused and actionable
+- If asked about specific vulnerabilities, reference the findings above
+- Suggest next steps when appropriate"""
+
+        # Build messages
+        messages = [{'role': 'system', 'content': system_prompt}]
+        
+        # Add conversation history (last 5 exchanges to keep context manageable)
+        for msg in history[-10:]:
+            messages.append({'role': msg['role'], 'content': msg['content']})
+        
+        # Add current user message
+        messages.append({'role': 'user', 'content': user_message})
+        
+        print(f"[CHAT] Calling LLM with {len(messages)} messages...")
+        
+        # Stream response
+        def generate():
+            try:
+                chunk_count = 0
+                has_content = False
+                
+                # Try streaming
+                try:
+                    for chunk in chat_stream(messages, temperature=0.7, max_tokens=500):
+                        if chunk:
+                            chunk_count += 1
+                            has_content = True
+                            if chunk_count == 1:
+                                print(f"[CHAT] First chunk received: {chunk[:50]}")
+                            yield f"data: {json.dumps({'content': chunk})}\n\n"
+                    
+                    if has_content:
+                        print(f"[CHAT] Streamed {chunk_count} chunks successfully")
+                        yield "data: [DONE]\n\n"
+                    else:
+                        print(f"[CHAT WARNING] No chunks received from stream, trying non-streaming...")
+                        # Fallback to non-streaming
+                        from tools.nvidia_client import chat
+                        response = chat(messages, temperature=0.7, max_tokens=500)
+                        print(f"[CHAT] Non-streaming response length: {len(response)}")
+                        if response:
+                            yield f"data: {json.dumps({'content': response})}\n\n"
+                            yield "data: [DONE]\n\n"
+                        else:
+                            raise Exception("Empty response from LLM")
+                            
+                except Exception as stream_error:
+                    print(f"[CHAT ERROR] Streaming failed: {stream_error}")
+                    traceback.print_exc()
+                    # Try non-streaming as fallback
+                    from tools.nvidia_client import chat
+                    response = chat(messages, temperature=0.7, max_tokens=500)
+                    if response:
+                        print(f"[CHAT] Fallback non-streaming succeeded: {len(response)} chars")
+                        yield f"data: {json.dumps({'content': response})}\n\n"
+                        yield "data: [DONE]\n\n"
+                    else:
+                        raise Exception(f"LLM call failed: {stream_error}")
+                        
+            except Exception as e:
+                error_msg = f"Stream error: {str(e)}"
+                print(f"[CHAT ERROR] {error_msg}")
+                traceback.print_exc()
+                yield f"data: {json.dumps({'error': error_msg})}\n\n"
+        
+        response = app.response_class(generate(), mimetype='text/event-stream')
+        response.headers['Cache-Control'] = 'no-cache'
+        response.headers['X-Accel-Buffering'] = 'no'
+        return response
+        
+    except Exception as e:
+        error_msg = f"Chat endpoint error: {str(e)}"
+        print(f"[CHAT ERROR] {error_msg}")
+        traceback.print_exc()
+        return jsonify({'error': error_msg}), 500
+
+
+@app.route('/api/chat/test', methods=['GET'])
+def test_chat():
+    """Test endpoint to verify streaming works."""
+    import json
+    import time
+    
+    def generate():
+        for i in range(5):
+            yield f"data: {json.dumps({'content': f'Test chunk {i+1} '})}\n\n"
+            time.sleep(0.1)
+        yield "data: [DONE]\n\n"
+    
+    response = app.response_class(generate(), mimetype='text/event-stream')
+    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['X-Accel-Buffering'] = 'no'
+    return response
+
+
+# =============================================================================
+# AUTH HELPERS
+# =============================================================================
+
 def require_auth(f):
     from functools import wraps
     @wraps(f)
@@ -423,11 +596,15 @@ def webhook():
 
     if event_type == 'issue_comment':
         result = issue_responder.handle_webhook(payload_body, signature)
+        print(f"[WEBHOOK] issue_comment -> {result}")
         return jsonify(result), 200
     elif event_type == 'installation':
+        print("[WEBHOOK] installation event received")
         return jsonify({"status": "ok", "message": "Installation event received"}), 200
     elif event_type == 'ping':
+        print("[WEBHOOK] ping -> pong")
         return jsonify({"status": "ok", "message": "pong"}), 200
+    print(f"[WEBHOOK] ignored event: {event_type}")
     return jsonify({"status": "ignored", "event": event_type}), 200
 
 
