@@ -175,6 +175,23 @@ async function loadScanDetail(scanId) {
             else bar.className = 'absolute top-0 left-0 w-1 h-full bg-secondary';
         }
 
+        // Error/Warning Banner
+        if (details.error) {
+            const errorBanner = document.createElement('div');
+            errorBanner.className = 'bg-error/10 border border-error/30 rounded-lg p-4 flex items-start gap-3';
+            errorBanner.innerHTML = `
+                <span class="material-symbols-outlined text-error text-[24px]">error</span>
+                <div class="flex-1">
+                    <h3 class="font-body-md-bold text-body-md-bold text-error mb-1">Scan Error</h3>
+                    <p class="text-on-surface-variant font-body-sm text-body-sm">${escapeHtml(details.error)}</p>
+                </div>
+            `;
+            const mainContent = document.querySelector('.max-w-5xl');
+            if (mainContent) {
+                mainContent.insertBefore(errorBanner, document.getElementById('pr-link-container'));
+            }
+        }
+
         // PR link
         const prContainer = document.getElementById('pr-link-container');
         const prLink = document.getElementById('view-pr-link');
@@ -186,6 +203,26 @@ async function loadScanDetail(scanId) {
         } else if (prContainer && !details.pr_url) {
             // Hide PR button if no PR
             if (prLink) prLink.style.display = 'none';
+            
+            // Show warning if fixes were generated but no PR
+            if (details.fixes_generated > 0 && !details.error) {
+                const warningBanner = document.createElement('div');
+                warningBanner.className = 'bg-tertiary/10 border border-tertiary/30 rounded-lg p-4 flex items-start gap-3';
+                warningBanner.innerHTML = `
+                    <span class="material-symbols-outlined text-tertiary text-[24px]">warning</span>
+                    <div class="flex-1">
+                        <h3 class="font-body-md-bold text-body-md-bold text-tertiary mb-1">No Pull Request Created</h3>
+                        <p class="text-on-surface-variant font-body-sm text-body-sm">
+                            ${details.fixes_generated} fix(es) were generated but ${details.fixes_valid || 0} passed validation. 
+                            ${details.fixes_valid === 0 ? 'All fixes failed validation checks.' : 'PR creation may have failed.'}
+                        </p>
+                    </div>
+                `;
+                const mainContent = document.querySelector('.max-w-5xl');
+                if (mainContent) {
+                    mainContent.insertBefore(warningBanner, prContainer);
+                }
+            }
         }
 
         // Findings

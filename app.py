@@ -179,6 +179,8 @@ def _transform_scan_for_detail(scan):
         "pr_branch": scan.get("pr_branch"),
         "error": scan.get("error"),
         "steps": scan.get("steps", []),
+        "fixes_generated": scan.get("fixes_generated", 0),
+        "fixes_valid": scan.get("fixes_valid", 0),
     }
 
 
