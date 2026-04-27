@@ -17,6 +17,7 @@ CLIENT_ID = os.getenv('GITHUB_CLIENT_ID', '')
 CLIENT_SECRET = os.getenv('GITHUB_CLIENT_SECRET', '')
 WEBHOOK_SECRET = os.getenv('GITHUB_WEBHOOK_SECRET', '')
 PRIVATE_KEY_PATH = os.getenv('GITHUB_APP_PRIVATE_KEY_PATH', '')
+PRIVATE_KEY = os.getenv('GITHUB_APP_PRIVATE_KEY', '')
 APP_SLUG = os.getenv('GITHUB_APP_SLUG', 'patchybot-dev')
 
 
@@ -37,7 +38,10 @@ def get_installation_token(installation_id):
 
 
 def _read_private_key():
-    """Read GitHub App private key from file."""
+    """Read GitHub App private key from env var or file."""
+    if PRIVATE_KEY:
+        return PRIVATE_KEY.replace("\\n", "\n")
+
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), PRIVATE_KEY_PATH)
     if not os.path.exists(path):
         # Try absolute path
