@@ -518,7 +518,7 @@ def _run_semgrep(repo_path):
     """Run Semgrep with auto config, return findings list."""
     try:
         result = subprocess.run(
-            ["semgrep", "--config", "auto", "--json", "--timeout", str(SEMGREP_TIMEOUT), repo_path],
+            [_semgrep_binary(), "--config", "auto", "--json", "--timeout", str(SEMGREP_TIMEOUT), repo_path],
             capture_output=True, text=True, timeout=SEMGREP_TIMEOUT + 30
         )
         if result.stdout:
@@ -538,6 +538,16 @@ def _run_semgrep(repo_path):
     except FileNotFoundError:
         print("Semgrep not installed. Install with: pip install semgrep")
         return []
+
+
+def _semgrep_binary():
+    semgrep = shutil.which("semgrep")
+    if semgrep:
+        return semgrep
+    local = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv", "bin", "semgrep")
+    if os.path.exists(local):
+        return local
+    return "semgrep"
 
 
 # =============================================================================

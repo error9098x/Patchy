@@ -31,6 +31,11 @@ def _installation_token(installation_id):
     return gi.get_access_token(installation_id).token
 
 
+def get_installation_token(installation_id):
+    """Get a fresh installation token for git/API operations."""
+    return _installation_token(installation_id)
+
+
 def _read_private_key():
     """Read GitHub App private key from file."""
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), PRIVATE_KEY_PATH)
@@ -294,6 +299,15 @@ def post_issue_comment(installation_id, repo_full_name, issue_number, body):
     return comment.id
 
 
+def update_issue_comment(installation_id, repo_full_name, comment_id, body):
+    """Edit an existing issue or PR conversation comment."""
+    g = get_github_for_installation(installation_id)
+    repo = g.get_repo(repo_full_name)
+    comment = repo.get_issue_comment(comment_id)
+    comment.edit(body)
+    return comment.id
+
+
 def get_issue_context(installation_id, repo_full_name, issue_number):
     """Get issue title, body, and recent comments."""
     g = get_github_for_installation(installation_id)
@@ -309,6 +323,46 @@ def get_issue_context(installation_id, repo_full_name, issue_number):
         "body": issue.body or "",
         "comments": comments,
         "repo_name": repo_full_name
+    }
+
+
+def get_pull_request_context(installation_id, repo_full_name, pull_number):
+    """Get pull request metadata, changed files, and recent conversation."""
+    g = get_github_for_installation(installation_id)
+    repo = g.get_repo(repo_full_name)
+    pr = repo.get_pull(pull_number)
+
+    changed_files = []
+    for f in pr.get_files():
+        changed_files.append({
+            "filename": f.filename,
+            "status": f.status,
+            "additions": f.additions,
+            "deletions": f.deletions,
+            "changes": f.changes,
+            "patch": getattr(f, "patch", None) or "",
+        })
+
+    comments = []
+    issue = repo.get_issue(pull_number)
+    for c in issue.get_comments()[:10]:
+        comments.append(f"@{c.user.login}: {c.body}")
+
+    return {
+        "number": pr.number,
+        "title": pr.title,
+        "body": pr.body or "",
+        "state": pr.state,
+        "base_ref": pr.base.ref,
+        "base_sha": pr.base.sha,
+        "head_ref": pr.head.ref,
+        "head_sha": pr.head.sha,
+        "head_repo_full_name": pr.head.repo.full_name if pr.head.repo else repo_full_name,
+        "html_url": pr.html_url,
+        "author": pr.user.login if pr.user else "",
+        "changed_files": changed_files,
+        "comments": comments,
+        "repo_name": repo_full_name,
     }
 
 

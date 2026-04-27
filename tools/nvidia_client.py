@@ -124,6 +124,33 @@ def _stream_response(completion) -> Iterator[str]:
             print(chunk, end="", flush=True)
     """
     for chunk in completion:
+        delta = chunk.choices[0].delta
+        if delta.content:
+            yield delta.content
+
+
+def chat_stream(
+    messages: List[Dict[str, str]],
+    temperature: float = 0.7,
+    max_tokens: Optional[int] = None
+) -> Iterator[str]:
+    """
+    Convenience function for streaming chat responses.
+    
+    Args:
+        messages: List of message dicts with 'role' and 'content'
+        temperature: Sampling temperature (0-1)
+        max_tokens: Max completion tokens
+    
+    Yields:
+        Response chunks as they arrive
+    
+    Example:
+        >>> for chunk in chat_stream(messages):
+        ...     print(chunk, end="", flush=True)
+    """
+    return chat(messages, stream=True, temperature=temperature, max_tokens=max_tokens)
+    for chunk in completion:
         if not getattr(chunk, "choices", None):
             continue
         if chunk.choices[0].delta.content is not None:
