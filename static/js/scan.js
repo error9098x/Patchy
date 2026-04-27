@@ -38,46 +38,26 @@ async function loadScanHistory() {
 }
 
 function renderScanCard(scan) {
-    // Status icon
+    // Status icon - green for complete, red for error, blue for scanning
     let iconBg, iconColor, iconName;
-    if (scan.status === 'critical') {
-        iconBg = 'bg-error/10'; iconColor = 'text-error'; iconName = 'warning';
-    } else if (scan.status === 'warning') {
-        iconBg = 'bg-tertiary/10'; iconColor = 'text-tertiary'; iconName = 'error';
-    } else if (scan.status === 'error') {
+    if (scan.status === 'error' || scan.status === 'failed') {
         iconBg = 'bg-error/10'; iconColor = 'text-error'; iconName = 'dangerous';
-    } else if (scan.status === 'scanning') {
+    } else if (scan.status === 'scanning' || scan.is_in_progress) {
         iconBg = 'bg-primary/10'; iconColor = 'text-primary'; iconName = 'radar';
     } else {
+        // Complete - show green checkmark
         iconBg = 'bg-secondary/10'; iconColor = 'text-secondary'; iconName = 'check_circle';
     }
 
-    // Severity badges
+    // Severity badges - only show if there are findings
     let badges = '';
-    const f = scan.findings || {};
-    if (f.critical > 0) {
-        badges += `<span class="bg-error/10 text-error border border-error/30 px-3 py-1 rounded-DEFAULT font-label-caps text-label-caps shadow-[inset_0_0_8px_rgba(255,180,171,0.1)] flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-error animate-pulse"></span> ${f.critical} Critical
-        </span>`;
-    }
-    if (f.high > 0) {
-        badges += `<span class="bg-tertiary/10 text-tertiary border border-tertiary/30 px-3 py-1 rounded-DEFAULT font-label-caps text-label-caps flex items-center gap-1">
-            ${f.high} High
-        </span>`;
-    }
-    if (f.medium > 0) {
-        badges += `<span class="bg-tertiary/10 text-tertiary border border-tertiary/30 px-3 py-1 rounded-DEFAULT font-label-caps text-label-caps flex items-center gap-1">
-            ${f.medium} Medium
-        </span>`;
-    }
-    if (f.low > 0) {
-        badges += `<span class="bg-surface-bright text-on-surface border border-outline-variant px-3 py-1 rounded-DEFAULT font-label-caps text-label-caps flex items-center gap-1">
-            ${f.low} Low
-        </span>`;
-    }
-    if (scan.status === 'clean') {
+    if (scan.status === 'clean' || (scan.findings_count === 0 && scan.status === 'complete')) {
         badges = `<span class="bg-secondary/10 text-secondary border border-secondary/30 px-3 py-1 rounded-DEFAULT font-label-caps text-label-caps flex items-center gap-1">
             <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Clean
+        </span>`;
+    } else if (scan.findings_count > 0) {
+        badges = `<span class="bg-tertiary/10 text-tertiary border border-tertiary/30 px-3 py-1 rounded-DEFAULT font-label-caps text-label-caps flex items-center gap-1">
+            ${scan.findings_count} Finding${scan.findings_count > 1 ? 's' : ''}
         </span>`;
     }
 
@@ -88,13 +68,11 @@ function renderScanCard(scan) {
             <span class="material-symbols-outlined text-[18px]">visibility</span> View Live
         </a>`;
     } else {
+        // For completed scans, show PR button first if available
         if (scan.pr_url) {
             actions += `<a href="${escapeHtml(scan.pr_url)}" target="_blank" class="flex-1 lg:flex-none border border-outline-variant bg-transparent hover:bg-surface-bright hover:border-primary hover:text-primary text-on-surface transition-colors px-4 py-2 rounded-DEFAULT font-body-sm text-body-sm text-center">View PR</a>`;
         }
-        const detailBtnClass = scan.status === 'critical'
-            ? 'bg-inverse-primary text-on-primary-container hover:bg-primary-container font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]'
-            : 'border border-outline-variant bg-transparent hover:bg-surface-bright hover:border-primary hover:text-primary text-on-surface';
-        actions += `<a href="/scans/${scan.id}" class="flex-1 lg:flex-none ${detailBtnClass} transition-colors px-4 py-2 rounded-DEFAULT font-body-sm text-body-sm text-center">View Details</a>`;
+        actions += `<a href="/scans/${scan.id}/live" class="flex-1 lg:flex-none border border-outline-variant bg-transparent hover:bg-surface-bright hover:border-primary hover:text-primary text-on-surface transition-colors px-4 py-2 rounded-DEFAULT font-body-sm text-body-sm text-center">View Details</a>`;
     }
 
     const opacity = scan.status === 'clean' ? 'opacity-80 hover:opacity-100' : '';

@@ -22,7 +22,7 @@
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <div class="flex items-center gap-2 mb-1">
-                            <span class="material-symbols-outlined text-primary">radar</span>
+                            <span class="material-symbols-outlined" id="live-header-icon">radar</span>
                             <h1 class="font-h2 text-h2 text-on-surface" id="live-repo-name">Loading...</h1>
                         </div>
                         <div class="flex items-center gap-4 text-on-surface-variant font-mono text-mono">
@@ -46,6 +46,27 @@
                 </div>
                 <div class="mt-4 w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
                     <div class="h-full bg-gradient-to-r from-primary-container to-primary rounded-full transition-all duration-700 ease-out" id="live-progress-bar" style="width: 5%"></div>
+                </div>
+            </div>
+
+            <!-- Severity Summary Boxes (shown after scan completes) -->
+            <div class="hidden" id="severity-summary-section">
+                <div class="bg-surface-container rounded-lg border border-outline-variant p-6">
+                    <h3 class="font-body-md-bold text-body-md-bold text-on-surface mb-4">Security Findings Summary</h3>
+                    <div class="flex flex-wrap gap-4">
+                        <div class="bg-surface-container-high rounded p-3 border border-outline-variant text-center min-w-[80px]">
+                            <div class="text-error font-h3 text-h3" id="live-count-error">0</div>
+                            <div class="font-label-caps text-label-caps text-on-surface-variant mt-1">ERROR</div>
+                        </div>
+                        <div class="bg-surface-container-high rounded p-3 border border-outline-variant text-center min-w-[80px]">
+                            <div class="text-tertiary font-h3 text-h3" id="live-count-warning">0</div>
+                            <div class="font-label-caps text-label-caps text-on-surface-variant mt-1">WARNING</div>
+                        </div>
+                        <div class="bg-surface-container-high rounded p-3 border border-outline-variant text-center min-w-[80px]">
+                            <div class="text-on-surface font-h3 text-h3" id="live-count-info">0</div>
+                            <div class="font-label-caps text-label-caps text-on-surface-variant mt-1">INFO</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -134,6 +155,16 @@
                 <div class="bg-surface-container rounded-lg border border-outline-variant p-4 text-center">
                     <div class="text-tertiary font-h3 text-h3" id="stat-pr">—</div>
                     <div class="font-label-caps text-label-caps text-on-surface-variant mt-1">PR</div>
+                </div>
+            </div>
+
+            <!-- Vulnerabilities Detected Section (shown after scan completes) -->
+            <div class="space-y-4 hidden" id="vulnerabilities-section">
+                <h2 class="font-h3 text-h3 text-on-surface mb-4 border-b border-outline-variant pb-2">
+                    Vulnerabilities Detected
+                </h2>
+                <div id="findings-list">
+                    <!-- Finding cards will be inserted here -->
                 </div>
             </div>
 
@@ -378,6 +409,20 @@
             else statusBar.className = 'absolute top-0 left-0 w-1 h-full bg-primary';
         }
 
+        const headerIcon = document.getElementById('live-header-icon');
+        if (headerIcon) {
+            if (data.status === 'complete') {
+                headerIcon.textContent = 'task_alt';
+                headerIcon.className = 'material-symbols-outlined text-secondary';
+            } else if (data.status === 'failed') {
+                headerIcon.textContent = 'error';
+                headerIcon.className = 'material-symbols-outlined text-error';
+            } else {
+                headerIcon.textContent = 'radar';
+                headerIcon.className = 'material-symbols-outlined text-primary';
+            }
+        }
+
         renderSteps(data.steps);
         updateCurrentFinding(data.current_finding);
         renderEvents(data.agent_events || []);
@@ -397,15 +442,172 @@
             if (sub) sub.textContent = data.status;
             const actions = document.getElementById('live-complete-actions');
             if (actions && !data.pr_url) actions.classList.remove('hidden');
+            
+            // Load detailed findings when scan completes
+            loadFindings();
+            
             clearInterval(pollTimer);
             clearInterval(elapsedTimer);
         }
     }
 
+    async function loadFindings() {
+        try {
+            const details = await API.fetchScanDetails(scanId);
+            const findings = details.findings || [];
+            const section = document.getElementById('vulnerabilities-section');
+            const findingsList = document.getElementById('findings-list');
+            
+            if (!section || !findingsList) return;
+            
+            // Update severity summary counts
+            const severitySection = document.getElementById('severity-summary-section');
+            if (severitySection && details.summary) {
+                document.getElementById('live-count-error').textContent = details.summary.error || 0;
+                document.getElementById('live-count-warning').textContent = details.summary.warning || 0;
+                document.getElementById('live-count-info').textContent = details.summary.info || 0;
+                
+                severitySection.classList.remove('hidden');
+            }
+            
+            if (findings.length === 0) {
+                findingsList.innerHTML = `
+                    <div class="text-center py-12 bg-surface-container-low rounded-lg border border-outline-variant">
+                        <span class="material-symbols-outlined text-[48px] text-secondary mb-3 block" style="font-variation-settings: 'FILL' 1;">verified</span>
+                        <h3 class="font-h3 text-h3 text-secondary mb-2">All Clear!</h3>
+                        <p class="text-on-surface-variant font-body-md">No vulnerabilities detected in this scan.</p>
+                    </div>`;
+            } else {
+                findingsList.innerHTML = findings.map(f => renderFindingCard(f)).join('');
+            }
+            
+            section.classList.remove('hidden');
+        } catch (error) {
+            console.error('[Live] Failed to load findings:', error);
+        }
+    }
+
+    function renderFindingCard(finding) {
+        const severity = (finding.severity || 'warning').toLowerCase();
+        
+        let iconClass, iconBg, iconName;
+        if (severity === 'error') {
+            iconClass = 'text-error'; iconBg = 'bg-error-container/20'; iconName = 'warning';
+        } else if (severity === 'warning') {
+            iconClass = 'text-tertiary'; iconBg = 'bg-tertiary-container/20'; iconName = 'gpp_bad';
+        } else { // info
+            iconClass = 'text-on-surface-variant'; iconBg = 'bg-surface-container/20'; iconName = 'info';
+        }
+
+        const desc = finding.description || finding.message || 'No description';
+        const fixBadge = finding.fix_status === 'applied'
+            ? '<span class="bg-secondary/10 text-secondary border border-secondary/30 px-2 py-0.5 rounded text-[11px] font-bold ml-2">FIXED</span>'
+            : '';
+
+        let expandedContent = '';
+        if (finding.is_expanded && (finding.fix_explanation || finding.fix_diff)) {
+            let explanationHtml = '';
+            if (finding.fix_explanation) {
+                explanationHtml = `
+                    <div class="bg-surface-container-highest px-4 py-2 text-on-surface-variant flex items-center gap-2 border-b border-outline-variant">
+                        <span class="material-symbols-outlined text-sm">auto_fix_high</span> Fix Explanation
+                    </div>
+                    <div class="p-4 bg-[#0d1117] text-on-surface-variant text-body-sm">${escapeHtml(finding.fix_explanation)}</div>
+                `;
+            }
+            
+            let diffHtml = '';
+            if (finding.fix_diff) {
+                diffHtml = `
+                    <div class="bg-surface-container-highest px-4 py-2 text-on-surface-variant flex items-center gap-2 border-b border-t border-outline-variant">
+                        <span class="material-symbols-outlined text-sm">difference</span> Code Changes
+                    </div>
+                    <div class="bg-[#0d1117] py-2 overflow-x-auto">
+                        ${colorizeDiff(finding.fix_diff)}
+                    </div>
+                `;
+            }
+
+            expandedContent = `
+                <div class="p-4 bg-surface-container border-t border-outline-variant">
+                    <div class="font-mono text-mono rounded overflow-hidden border border-outline-variant">
+                        ${explanationHtml}
+                        ${diffHtml}
+                    </div>
+                </div>`;
+        }
+
+        const btnClass = finding.is_expanded
+            ? 'bg-primary text-on-primary hover:bg-primary-fixed shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]'
+            : 'border border-outline-variant text-on-surface hover:bg-surface-container-high';
+        const chevron = finding.is_expanded ? 'expand_more' : 'chevron_right';
+        const hasFixContent = finding.fix_explanation || finding.fix_status === 'applied';
+
+        return `
+            <div class="bg-surface-container-low rounded-lg border border-outline-variant overflow-hidden hover:border-primary-container transition-colors mb-4" data-finding-id="${finding.id}">
+                <div class="p-4 ${finding.is_expanded ? 'border-b border-outline-variant bg-surface-container-lowest' : ''} flex items-start justify-between gap-4">
+                    <div class="flex gap-3 items-start">
+                        <div class="mt-1 ${iconClass} ${iconBg} p-1.5 rounded"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">${iconName}</span></div>
+                        <div>
+                            <h3 class="font-body-lg text-body-lg text-on-surface font-semibold">${escapeHtml(finding.type)}${fixBadge}</h3>
+                            <p class="font-body-sm text-body-sm text-on-surface-variant mt-1">${escapeHtml(desc)}</p>
+                            <div class="mt-3 flex items-center gap-2 font-mono text-mono text-on-surface-variant bg-surface-container-highest px-2 py-1 rounded border border-outline-variant inline-block">
+                                <span class="material-symbols-outlined text-sm">code</span> ${escapeHtml(finding.file)}:${finding.line}
+                            </div>
+                        </div>
+                    </div>
+                    ${hasFixContent ? `<button class="${btnClass} px-4 py-2 rounded font-body-sm text-body-sm transition-colors flex items-center gap-2 whitespace-nowrap" onclick="toggleFinding('${finding.id}')">
+                        View Fix <span class="material-symbols-outlined text-sm">${chevron}</span>
+                    </button>` : ''}
+                </div>
+                ${expandedContent}
+            </div>`;
+    }
+
+    function colorizeDiff(diffStr) {
+        if (!diffStr) return '';
+        return diffStr.split('\n').map(line => {
+            const escaped = escapeHtml(line);
+            if (line.startsWith('+') && !line.startsWith('+++')) {
+                return `<div class="bg-secondary/10 text-[#7ee787] px-4 py-0.5 whitespace-pre font-mono text-[13px]">${escaped}</div>`;
+            } else if (line.startsWith('-') && !line.startsWith('---')) {
+                return `<div class="bg-error/10 text-[#ff7b72] px-4 py-0.5 whitespace-pre font-mono text-[13px]">${escaped}</div>`;
+            } else if (line.startsWith('@@')) {
+                return `<div class="text-[#79c0ff] px-4 py-2 whitespace-pre font-mono text-[13px] mt-2 border-t border-outline-variant/30">${escaped}</div>`;
+            } else if (line.startsWith('---') || line.startsWith('+++')) {
+                return `<div class="text-on-surface-variant px-4 py-1 whitespace-pre font-mono text-[13px] font-bold">${escaped}</div>`;
+            } else {
+                return `<div class="text-on-surface-variant px-4 py-0.5 whitespace-pre font-mono text-[13px] opacity-70">${escaped}</div>`;
+            }
+        }).join('');
+    }
+
+    window.toggleFinding = function(findingId) {
+        const card = document.querySelector(`[data-finding-id="${findingId}"]`);
+        if (!card) return;
+        
+        // Re-fetch and re-render to toggle
+        API.fetchScanDetails(scanId).then(details => {
+            const finding = details.findings.find(f => f.id === findingId);
+            if (finding) {
+                finding.is_expanded = !finding.is_expanded;
+                const findingsList = document.getElementById('findings-list');
+                if (findingsList) {
+                    findingsList.innerHTML = details.findings.map(f => renderFindingCard(f)).join('');
+                }
+            }
+        });
+    };
+
     async function poll() {
         try {
             const data = await API.fetchScanStatus(scanId);
             updateUI(data);
+            
+            // If scan is already complete on first poll, load findings
+            if ((data.status === 'complete' || data.status === 'failed') && lastEventCount === 0) {
+                await loadFindings();
+            }
         } catch (e) {
             console.error('[Live] Poll failed:', e);
         }

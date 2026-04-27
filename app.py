@@ -68,12 +68,16 @@ def _compute_runtime(scan):
 
 
 def _severity_counts(findings_list):
-    """Count findings by severity."""
-    counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    """Count findings by severity using Semgrep's actual severity levels."""
+    counts = {"error": 0, "warning": 0, "info": 0}
+    
     for f in (findings_list or []):
-        sev = f.get("severity", "medium").lower()
+        sev = f.get("severity", "warning").lower()
         if sev in counts:
             counts[sev] += 1
+        # Handle any unexpected severity values
+        elif sev not in counts:
+            counts["warning"] += 1
     return counts
 
 
@@ -81,9 +85,9 @@ def _scan_display_status(scan):
     """Map internal status to display status for frontend."""
     if scan["status"] == "complete":
         counts = _severity_counts(scan.get("findings", []))
-        if counts["critical"] > 0:
+        if counts["error"] > 0:
             return "critical"
-        if counts["high"] > 0 or counts["medium"] > 0:
+        if counts["warning"] > 0:
             return "warning"
         return "clean"
     if scan["status"] == "failed":
@@ -169,9 +173,9 @@ def _transform_scan_for_detail(scan):
         "author": "patchy-bot",
         "status": scan.get("status", ""),
         "summary": {
-            "critical": counts["critical"],
-            "high": counts["high"],
-            "moderate": counts["medium"],
+            "error": counts["error"],
+            "warning": counts["warning"],
+            "info": counts["info"],
         },
         "findings": findings,
         "pr_url": scan.get("pr_url"),
